@@ -203,7 +203,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-8 bg-blue-50">
-      <div className="flex flex-col items-center mb-10" style={{width: 'fit-content', minWidth: 'min-content'}}>
+      <div className="flex flex-col items-center mb-10 mt-4" style={{width: 'fit-content', minWidth: 'min-content'}}>
         <div className="border-2 border-[var(--gold)] bg-[var(--gold)] rounded-none px-8 py-5 flex flex-col items-center w-full">
           <h1 className="text-5xl font-bold font-playfair text-white">Felix Tell</h1>
         </div>
@@ -221,7 +221,7 @@ export default function Home() {
           Brand Login / Register
         </button>
       </div>
-      <div className="flex flex-col items-center mb-10" style={{position: 'relative', width: '16rem', height: '20rem'}}>
+      <div className="flex flex-col items-center mb-4" style={{position: 'relative', width: '16rem', height: '20rem'}}>
         {modelsState.length > 0 && !justRemoved && !showBecomeModelForm && (
           <div
             ref={swipeRef}
