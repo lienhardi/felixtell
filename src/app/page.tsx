@@ -36,16 +36,17 @@ export default function Home() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-8">
-      <h1 className="text-4xl font-bold text-[var(--gold)] mb-8">Felix Tell</h1>
-      <div className="grid grid-cols-2 gap-4 mb-8">
-        {/* Platzhalter für Model-Bilder */}
+      <h1 className="text-5xl font-bold font-playfair text-[var(--gold)] mb-4">Felix Tell</h1>
+      <p className="text-2xl font-playfair text-gray-700 mb-14 tracking-wide">We help you sell better</p>
+      <div className="grid grid-cols-2 gap-8 mb-12">
+        {/* Placeholder for model images */}
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="w-40 h-40 bg-gray-200 flex items-center justify-center cursor-pointer" onClick={openContactForm}>
-            <span>Model {i}</span>
+          <div key={i} className="w-48 h-64 bg-gray-100 flex items-center justify-center rounded-xl shadow-md border border-gray-200 hover:shadow-xl transition-shadow duration-300 cursor-pointer" onClick={openContactForm}>
+            <span className="text-gray-600 font-medium">Model {i}</span>
           </div>
         ))}
       </div>
-      <button className="px-4 py-2 bg-[var(--gold)] text-white rounded hover:bg-[var(--gold-light)]" onClick={openBecomeModelForm}>
+      <button className="px-8 py-3 bg-[var(--gold)] text-white rounded-full text-lg font-semibold shadow hover:bg-[var(--gold-light)] hover:text-[var(--gold)] transition-colors duration-200" onClick={openBecomeModelForm}>
         Become a Model
       </button>
 

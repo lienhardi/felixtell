@@ -12,6 +12,7 @@ module.exports = {
       },
       fontFamily: {
         sans: ['Inter', 'Arial', 'sans-serif'],
+        playfair: ['Playfair Display', 'serif'],
       },
     },
   },
