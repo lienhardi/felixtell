@@ -1,6 +1,12 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
+import { createClient, User } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  'https://gzlaxsumaorevaxyswoc.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd6bGF4c3VtYW9yZXZheHlzd29jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY4ODAzMjQsImV4cCI6MjA2MjQ1NjMyNH0.3yVwPjm4wDpHPCvVbKoG-8-Tr_pw8vz0XZ8hkMxMKa8'
+);
 
 export default function Home() {
   const [showContactForm, setShowContactForm] = useState(false);
@@ -9,6 +15,11 @@ export default function Home() {
   const [becomeModelEmail, setBecomeModelEmail] = useState('');
   const [becomeModelAge, setBecomeModelAge] = useState('');
   const [userType, setUserType] = useState<'talent' | 'brand' | null>(null);
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [user, setUser] = useState<User | null>(null);
 
   const models = [
     { name: 'Model 1', img: null },
@@ -16,7 +27,56 @@ export default function Home() {
     { name: 'Model 3', img: null },
     { name: 'Model 4', img: null },
   ];
+  const [modelsState, setModelsState] = useState(models);
   const [currentModel, setCurrentModel] = useState(0);
+  const [swipeDirection, setSwipeDirection] = useState<null | 'left' | 'right'>(null);
+
+  const swipeRef = useRef<HTMLDivElement>(null);
+  const startX = useRef(0);
+  const isSwiping = useRef(false);
+  const [dragX, setDragX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [pendingRemove, setPendingRemove] = useState(false);
+  const [justRemoved, setJustRemoved] = useState(false);
+  const [pendingModelRemove, setPendingModelRemove] = useState<null | number>(null);
+  const [readyToRemove, setReadyToRemove] = useState(false);
+  const [removing, setRemoving] = useState(false);
+
+  // Vereinfachte Swipe-Logik: immer nur das erste Model anzeigen
+  const handleRemoveModel = () => {
+    setModelsState((prev) => prev.slice(1));
+    setDragX(0);
+  };
+
+  // handleTouchEnd muss angepasst werden:
+  const handleTouchEnd = (e: React.TouchEvent | React.MouseEvent) => {
+    if (!isSwiping.current) return;
+    setIsDragging(false);
+    const endX = 'changedTouches' in e ? e.changedTouches[0].clientX : (e as React.MouseEvent).clientX;
+    const diff = endX - startX.current;
+    if (diff > 60 || diff < -60) {
+      setModelsState((prev) => prev.slice(1));
+      setDragX(0);
+      setSwipeDirection(null);
+      setJustRemoved(true);
+      setTimeout(() => setJustRemoved(false), 0);
+    } else {
+      setDragX(0);
+    }
+    isSwiping.current = false;
+  };
+
+  useEffect(() => {
+    if (!justRemoved) return;
+    const timeout = setTimeout(() => setJustRemoved(false), 0);
+    return () => clearTimeout(timeout);
+  }, [justRemoved]);
+
+  const handleTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
+    isSwiping.current = true;
+    setIsDragging(true);
+    startX.current = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+  };
 
   const openContactForm = () => {
     setShowContactForm(true);
@@ -43,8 +103,105 @@ export default function Home() {
     setShowBecomeModelForm(false);
   };
 
+  // handleTouchMove wieder aktivieren:
+  const handleTouchMove = (e: React.TouchEvent | React.MouseEvent) => {
+    if (!isSwiping.current) return;
+    const currentX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+    const diff = currentX - startX.current;
+    setDragX(diff);
+  };
+
+  // Globale Drag-Events für echtes Swipen
+  useEffect(() => {
+    if (!isDragging) return;
+    const handleMove = (e: MouseEvent | TouchEvent) => {
+      let clientX = 0;
+      if ('touches' in e && e.touches.length > 0) {
+        clientX = e.touches[0].clientX;
+      } else if ('changedTouches' in e && e.changedTouches.length > 0) {
+        clientX = e.changedTouches[0].clientX;
+      } else if ('clientX' in e) {
+        clientX = (e as MouseEvent).clientX;
+      }
+      const diff = clientX - startX.current;
+      setDragX(diff);
+    };
+    const handleUp = (e: MouseEvent | TouchEvent) => {
+      let clientX = 0;
+      if ('changedTouches' in e && e.changedTouches.length > 0) {
+        clientX = e.changedTouches[0].clientX;
+      } else if ('clientX' in e) {
+        clientX = (e as MouseEvent).clientX;
+      }
+      const diff = clientX - startX.current;
+      setIsDragging(false);
+      if (diff > 60 || diff < -60) {
+        setModelsState((prev) => prev.slice(1));
+        setDragX(0);
+        setSwipeDirection(null);
+        setJustRemoved(true);
+      } else {
+        setDragX(0);
+      }
+      isSwiping.current = false;
+    };
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('touchmove', handleMove);
+    window.addEventListener('mouseup', handleUp);
+    window.addEventListener('touchend', handleUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('touchmove', handleMove);
+      window.removeEventListener('mouseup', handleUp);
+      window.removeEventListener('touchend', handleUp);
+    };
+  }, [isDragging]);
+
+  useEffect(() => {
+    if (!justRemoved) return;
+    const timeout = setTimeout(() => setJustRemoved(false), 0);
+    return () => clearTimeout(timeout);
+  }, [justRemoved]);
+
+  // Supabase Auth
+  useEffect(() => {
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    supabase.auth.getUser().then(({ data }) => setUser(data?.user ?? null));
+    return () => { listener?.subscription.unsubscribe(); };
+  }, []);
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+    if (authMode === 'login') {
+      const { error } = await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
+      if (error) setAuthError(error.message);
+    } else {
+      try {
+        const { error } = await supabase.auth.signUp({ email: authEmail, password: authPassword });
+        if (error) {
+          if (error.message.includes('duplicate key value') || error.message.includes('users_email_partial_key')) {
+            setAuthError('Diese E-Mail-Adresse ist bereits registriert. Bitte melden Sie sich an oder verwenden Sie eine andere E-Mail-Adresse.');
+          } else {
+            setAuthError(error.message);
+          }
+        } else {
+          setAuthError('Bitte überprüfen Sie Ihre E-Mails für den Bestätigungslink.');
+        }
+      } catch (err) {
+        setAuthError('Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
+      }
+    }
+  };
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+  };
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-8">
+    <div className="flex flex-col items-center justify-center min-h-screen p-8 bg-blue-50">
       <div className="flex flex-col items-center mb-10" style={{width: 'fit-content', minWidth: 'min-content'}}>
         <div className="border-2 border-[var(--gold)] bg-[var(--gold)] rounded-none px-8 py-5 flex flex-col items-center w-full">
           <h1 className="text-5xl font-bold font-playfair text-white">Felix Tell</h1>
@@ -53,17 +210,43 @@ export default function Home() {
           <p className="text-2xl font-playfair text-white tracking-wide">Talents for Brands</p>
         </div>
       </div>
-      <h2 className="text-3xl font-playfair text-gray-800 mb-2">Match with your future brand ambassador</h2>
-      <p className="text-lg text-gray-500 mb-8">Swipe to discover unique personalities for your brand</p>
-      <div className="flex flex-col items-center mb-10">
-        <div className="w-64 h-80 bg-gray-100 flex flex-col items-center justify-center rounded-xl shadow-md border border-gray-200 mb-4 relative">
-          {/* Hier könnte später ein echtes Modelbild stehen */}
-          <span className="text-gray-600 font-medium text-xl mb-2">{models[currentModel].name}</span>
-          {/* Swipe-Buttons */}
-          <button className="absolute left-2 top-1/2 -translate-y-1/2 bg-white rounded-full shadow p-2 hover:bg-gray-200" onClick={() => setCurrentModel((prev) => (prev === 0 ? models.length - 1 : prev - 1))} aria-label="Previous Model">&#8592;</button>
-          <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-white rounded-full shadow p-2 hover:bg-gray-200" onClick={() => setCurrentModel((prev) => (prev === models.length - 1 ? 0 : prev + 1))} aria-label="Next Model">&#8594;</button>
-        </div>
-        <button className="mt-2 text-sm text-gray-500 underline" onClick={openContactForm}>Book this Talent</button>
+      <h2 className="text-3xl font-playfair text-black mb-2">Become Partners</h2>
+      <p className="text-lg text-black mb-8">You need each other, swipe right!</p>
+      <div className="flex flex-col items-center mb-10" style={{position: 'relative', width: '16rem', height: '20rem'}}>
+        {modelsState.length > 0 && !justRemoved && !showBecomeModelForm && (
+          <div
+            ref={swipeRef}
+            className={`w-64 h-80 bg-gray-100 flex flex-col items-center justify-center rounded-xl shadow-md border border-gray-200 absolute top-0 left-0 mb-4 select-none z-10`}
+            style={{ transform: `translateX(${dragX}px)` }}
+            onMouseDown={handleTouchStart}
+            onTouchStart={handleTouchStart}
+            onMouseMove={isDragging ? handleTouchMove : undefined}
+            onTouchMove={isDragging ? handleTouchMove : undefined}
+          >
+            <span className="text-gray-600 font-medium text-xl mb-2">{modelsState[0]?.name}</span>
+            {/* Swipe-Buttons */}
+            <button className="absolute left-2 top-1/2 -translate-y-1/2 bg-white rounded-full shadow p-2 hover:bg-gray-200" onClick={() => {
+              setModelsState((prev) => prev.slice(1));
+              setDragX(0);
+              setSwipeDirection(null);
+              setJustRemoved(true);
+            }} aria-label="Dislike">&#8592;</button>
+            <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-white rounded-full shadow p-2 hover:bg-gray-200" onClick={() => {
+              setModelsState((prev) => prev.slice(1));
+              setDragX(0);
+              setSwipeDirection(null);
+              setJustRemoved(true);
+            }} aria-label="Like">&#8594;</button>
+          </div>
+        )}
+        {modelsState.length === 0 && !showBecomeModelForm && (
+          <div className="w-64 h-80 bg-gray-100 flex flex-col items-center justify-center rounded-xl shadow-md border border-gray-200 absolute top-0 left-0 z-10">
+            <span className="text-gray-400 font-medium text-xl mb-2">No more models</span>
+          </div>
+        )}
+      </div>
+      <div className="flex items-center w-full justify-center mb-4">
+        <span className="text-gray-400 text-lg font-semibold">or</span>
       </div>
       <div className="flex flex-col sm:flex-row gap-6 mb-8">
         <button className="px-8 py-3 bg-[var(--gold)] text-white rounded-full text-lg font-semibold shadow hover:bg-[var(--gold-light)] hover:text-[var(--gold)] transition-colors duration-200" onClick={openBecomeModelForm}>
@@ -100,6 +283,29 @@ export default function Home() {
               <button type="button" className="px-4 py-2 bg-gray-300 text-black rounded ml-2" onClick={() => setShowBecomeModelForm(false)}>Close</button>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Auth UI */}
+      {!user && (
+        <div className="mb-8 w-full max-w-xs bg-white p-6 rounded shadow flex flex-col items-center">
+          <h2 className="text-2xl font-bold mb-4">{authMode === 'login' ? 'Brand Login' : 'Brand Signup'}</h2>
+          <form onSubmit={handleAuth} className="w-full flex flex-col gap-3">
+            <input type="email" placeholder="E-Mail" className="border p-2 rounded" value={authEmail} onChange={e => setAuthEmail(e.target.value)} required />
+            <input type="password" placeholder="Password" className="border p-2 rounded" value={authPassword} onChange={e => setAuthPassword(e.target.value)} required />
+            {authError && <div className="text-red-500 text-sm">{authError}</div>}
+            <button type="submit" className="bg-[var(--gold)] text-white rounded px-4 py-2 font-semibold">{authMode === 'login' ? 'Login' : 'Sign Up'}</button>
+          </form>
+          <button className="mt-2 text-sm text-gray-500 underline" onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}>
+            {authMode === 'login' ? 'No account? Sign up' : 'Already have an account? Login'}
+          </button>
+        </div>
+      )}
+      {/* Nach Login: Begrüßung und Logout */}
+      {user && (
+        <div className="mb-8 w-full max-w-xs bg-white p-4 rounded shadow flex flex-col items-center">
+          <span className="mb-2">Logged in as <b>{user.email}</b></span>
+          <button className="bg-gray-300 text-black rounded px-4 py-2 font-semibold" onClick={handleLogout}>Logout</button>
         </div>
       )}
     </div>
