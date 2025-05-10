@@ -11,6 +11,7 @@ const supabase = createClient(
 export default function Home() {
   const [showContactForm, setShowContactForm] = useState(false);
   const [showBecomeModelForm, setShowBecomeModelForm] = useState(false);
+  const [showBrandForm, setShowBrandForm] = useState(false);
   const [contactEmail, setContactEmail] = useState('');
   const [becomeModelEmail, setBecomeModelEmail] = useState('');
   const [becomeModelAge, setBecomeModelAge] = useState('');
@@ -212,6 +213,14 @@ export default function Home() {
       </div>
       <h2 className="text-3xl font-playfair text-black mb-2">Become Partners</h2>
       <p className="text-lg text-black mb-8">You need each other, swipe right!</p>
+      <div className="w-full flex justify-center mb-8">
+        <button
+          onClick={() => setShowBrandForm(true)}
+          className="px-4 py-1 rounded-full bg-white/80 text-[var(--gold)] border border-[var(--gold)] font-medium text-sm shadow-none hover:bg-[var(--gold)] hover:text-white transition-colors"
+          style={{minWidth: '110px'}}>
+          Brand Login / Register
+        </button>
+      </div>
       <div className="flex flex-col items-center mb-10" style={{position: 'relative', width: '16rem', height: '20rem'}}>
         {modelsState.length > 0 && !justRemoved && !showBecomeModelForm && (
           <div
@@ -286,21 +295,24 @@ export default function Home() {
         </div>
       )}
 
-      {/* Auth UI */}
-      {!user && (
-        <div className="mb-8 w-full max-w-xs bg-white p-6 rounded shadow flex flex-col items-center">
-          <h2 className="text-2xl font-bold mb-4">{authMode === 'login' ? 'Brand Login' : 'Brand Signup'}</h2>
-          <form onSubmit={handleAuth} className="w-full flex flex-col gap-3">
-            <input type="email" placeholder="E-Mail" className="border p-2 rounded" value={authEmail} onChange={e => setAuthEmail(e.target.value)} required />
-            <input type="password" placeholder="Password" className="border p-2 rounded" value={authPassword} onChange={e => setAuthPassword(e.target.value)} required />
-            {authError && <div className="text-red-500 text-sm">{authError}</div>}
-            <button type="submit" className="bg-[var(--gold)] text-white rounded px-4 py-2 font-semibold">{authMode === 'login' ? 'Login' : 'Sign Up'}</button>
-          </form>
-          <button className="mt-2 text-sm text-gray-500 underline" onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}>
-            {authMode === 'login' ? 'No account? Sign up' : 'Already have an account? Login'}
-          </button>
+      {showBrandForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-8 rounded shadow flex flex-col items-center max-w-xs w-full">
+            <h2 className="text-2xl font-bold mb-4">{authMode === 'login' ? 'Brand Login' : 'Brand Signup'}</h2>
+            <form onSubmit={handleAuth} className="w-full flex flex-col gap-3">
+              <input type="email" placeholder="E-Mail" className="border p-2 rounded" value={authEmail} onChange={e => setAuthEmail(e.target.value)} required />
+              <input type="password" placeholder="Password" className="border p-2 rounded" value={authPassword} onChange={e => setAuthPassword(e.target.value)} required />
+              {authError && <div className="text-red-500 text-sm">{authError}</div>}
+              <button type="submit" className="bg-[var(--gold)] text-white rounded px-4 py-2 font-semibold">{authMode === 'login' ? 'Login' : 'Sign Up'}</button>
+            </form>
+            <button className="mt-2 text-sm text-gray-500 underline" onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}>
+              {authMode === 'login' ? 'No account? Sign up' : 'Already have an account? Login'}
+            </button>
+            <button className="mt-4 text-sm text-gray-500 underline" onClick={() => setShowBrandForm(false)}>Close</button>
+          </div>
         </div>
       )}
+
       {/* Nach Login: Begrüßung und Logout */}
       {user && (
         <div className="mb-8 w-full max-w-xs bg-white p-4 rounded shadow flex flex-col items-center">
