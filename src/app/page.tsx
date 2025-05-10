@@ -225,32 +225,40 @@ export default function Home() {
         {modelsState.length > 0 && !justRemoved && !showBecomeModelForm && (
           <div
             ref={swipeRef}
-            className={`w-64 h-80 bg-gray-100 flex flex-col items-center justify-center rounded-xl shadow-md border border-gray-200 absolute top-0 left-0 mb-4 select-none z-10`}
+            className={`w-64 h-80 bg-gray-100 flex flex-col items-center justify-between rounded-xl shadow-md border border-gray-200 mb-4 select-none z-10 p-6`}
             style={{ transform: `translateX(${dragX}px)` }}
             onMouseDown={handleTouchStart}
             onTouchStart={handleTouchStart}
             onMouseMove={isDragging ? handleTouchMove : undefined}
             onTouchMove={isDragging ? handleTouchMove : undefined}
           >
-            <span className="text-gray-600 font-medium text-xl mb-2">{modelsState[0]?.name}</span>
-            {/* Swipe-Buttons */}
-            <button className="absolute left-2 top-1/2 -translate-y-1/2 bg-white rounded-full shadow p-2 hover:bg-gray-200" onClick={() => {
-              setModelsState((prev) => prev.slice(1));
-              setDragX(0);
-              setSwipeDirection(null);
-              setJustRemoved(true);
-            }} aria-label="Dislike">&#8592;</button>
-            <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-white rounded-full shadow p-2 hover:bg-gray-200" onClick={() => {
-              setModelsState((prev) => prev.slice(1));
-              setDragX(0);
-              setSwipeDirection(null);
-              setJustRemoved(true);
-            }} aria-label="Like">&#8594;</button>
-          </div>
-        )}
-        {modelsState.length === 0 && !showBecomeModelForm && (
-          <div className="w-64 h-80 bg-gray-100 flex flex-col items-center justify-center rounded-xl shadow-md border border-gray-200 absolute top-0 left-0 z-10">
-            <span className="text-gray-400 font-medium text-xl mb-2">No more models</span>
+            <span className="text-gray-600 font-medium text-xl mt-4">{modelsState[0]?.name}</span>
+            <div className="flex justify-center gap-8 mb-2 mt-auto">
+              <button
+                className="w-12 h-12 flex items-center justify-center rounded-full bg-red-100 text-red-500 text-2xl shadow hover:bg-red-200 transition-colors"
+                onClick={() => {
+                  setModelsState((prev) => prev.slice(1));
+                  setDragX(0);
+                  setSwipeDirection(null);
+                  setJustRemoved(true);
+                }}
+                aria-label="Dislike"
+              >
+                &#10006;
+              </button>
+              <button
+                className="w-12 h-12 flex items-center justify-center rounded-full bg-green-100 text-green-600 text-2xl shadow hover:bg-green-200 transition-colors"
+                onClick={() => {
+                  setModelsState((prev) => prev.slice(1));
+                  setDragX(0);
+                  setSwipeDirection(null);
+                  setJustRemoved(true);
+                }}
+                aria-label="Like"
+              >
+                &#10004;
+              </button>
+            </div>
           </div>
         )}
       </div>
