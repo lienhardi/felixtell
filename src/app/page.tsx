@@ -203,12 +203,14 @@ export default function Home() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-8 bg-blue-50">
-      <div className="flex flex-col items-center mb-12 mt-6 shadow-lg rounded-xl overflow-hidden border-2 border-[var(--gold)] bg-white">
-        <div className="bg-[var(--gold)] w-full px-8 py-5 flex flex-col items-center">
-          <h1 className="text-5xl font-bold font-playfair text-white tracking-wider drop-shadow">Felix Tell</h1>
-        </div>
-        <div className="bg-black w-full px-8 py-3 flex flex-col items-center">
-          <p className="text-2xl font-playfair text-white tracking-wide drop-shadow">Talents for Brands</p>
+      <div className="flex flex-col items-center mb-10 mt-4" style={{width: 'fit-content', minWidth: 'min-content'}}>
+        <div className="flex flex-col items-center shadow-xl rounded-xl overflow-hidden border border-[#E5C76B] bg-white">
+          <div className="bg-[#E5C76B] w-full px-8 py-5 flex flex-col items-center">
+            <h1 className="text-5xl font-bold font-playfair text-white tracking-wider drop-shadow">Felix Tell</h1>
+          </div>
+          <div className="bg-black w-full px-8 py-3 flex flex-col items-center">
+            <p className="text-2xl font-playfair text-white tracking-wide drop-shadow">Talents for Brands</p>
+          </div>
         </div>
       </div>
       <div className="border-t-2 border-[var(--gold)] w-24 mx-auto my-4"></div>
@@ -226,7 +228,7 @@ export default function Home() {
         {modelsState.length > 0 && !justRemoved && !showBecomeModelForm && (
           <div
             ref={swipeRef}
-            className={`w-64 h-80 bg-gray-100 flex flex-col items-center justify-between rounded-xl shadow-md border border-gray-200 mb-4 select-none z-10 p-6`}
+            className={`w-64 h-80 bg-gray-100 flex flex-col items-center justify-between rounded-xl shadow-xl border border-[#E5C76B] mb-4 select-none z-10 p-6`}
             style={{ transform: `translateX(${dragX}px)` }}
             onMouseDown={handleTouchStart}
             onTouchStart={handleTouchStart}
@@ -236,7 +238,7 @@ export default function Home() {
             <span className="text-gray-600 font-medium text-xl mt-4">{modelsState[0]?.name}</span>
             <div className="flex justify-center gap-8 mb-2 mt-auto">
               <button
-                className="w-12 h-12 flex items-center justify-center rounded-full bg-red-100 text-red-500 text-2xl shadow hover:bg-red-200 transition-colors"
+                className="w-12 h-12 flex items-center justify-center rounded-full bg-red-100 text-red-500 text-2xl shadow-lg hover:bg-red-200 transition-all duration-300 hover:shadow-xl"
                 onClick={() => {
                   setModelsState((prev) => prev.slice(1));
                   setDragX(0);
@@ -248,7 +250,7 @@ export default function Home() {
                 &#10006;
               </button>
               <button
-                className="w-12 h-12 flex items-center justify-center rounded-full bg-green-100 text-green-600 text-2xl shadow hover:bg-green-200 transition-colors"
+                className="w-12 h-12 flex items-center justify-center rounded-full bg-green-100 text-green-500 text-2xl shadow-lg hover:bg-green-200 transition-all duration-300 hover:shadow-xl"
                 onClick={() => {
                   setModelsState((prev) => prev.slice(1));
                   setDragX(0);
