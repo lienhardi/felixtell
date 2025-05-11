@@ -31,7 +31,12 @@ export default function About() {
              Are you tired of models or actors or brand ambassadors who are not really catching potential customers and viewers with their presence? Or are even repulsive to the eye or heart? We from Felix Tell are sometimes surprised by what bad models even the biggest companies use. A model should be a role model. A lot of people have to see your advertisements and your stock holders want revenue, so present responsibly!
             <br />
             <br />
-            That being said: Let's make it light and fun and get your pictures and your products sold!
+            That being said: Let's make it light and fun and get your pictures on the walls and your products sold!
+            <br />
+            <br />
+            Become a model with us or find a model for your projects by using Felix Tell.
+            <br />
+            Don't hesitate to contact us at family@felixtell.com
             <br />
             <br />
             Cheers,
