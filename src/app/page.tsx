@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { createClient, User } from '@supabase/supabase-js';
+import Link from 'next/link';
 
 const supabase = createClient(
   'https://gzlaxsumaorevaxyswoc.supabase.co',
@@ -336,12 +337,12 @@ export default function Home() {
 
       {/* About Link */}
       <div className="mt-auto pt-8">
-        <a 
-          href="#" 
+        <Link 
+          href="/about"
           className="text-gray-500 hover:text-[var(--gold)] transition-colors duration-300 text-sm font-medium tracking-wide"
         >
           About Felix Tell
-        </a>
+        </Link>
       </div>
     </div>
   );
