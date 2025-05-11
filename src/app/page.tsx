@@ -373,7 +373,29 @@ export default function Home() {
             <div className="flex justify-center gap-8 mb-2 mt-auto">
               <button
                 className="w-12 h-12 flex items-center justify-center rounded-full bg-red-100 text-red-500 text-2xl shadow-lg hover:bg-red-200 transition-all duration-300 hover:shadow-xl"
-                onClick={() => {
+                onClick={async () => {
+                  // Dislike-Button (links)
+                  const direction = 'left';
+                  if (!user) {
+                    const pendingSwipe = {
+                      model_name: modelsState[0]?.name,
+                      direction
+                    };
+                    localStorage.setItem('pendingSwipe', JSON.stringify(pendingSwipe));
+                    setShowBrandForm(true);
+                    setAuthMode('signup');
+                  } else {
+                    const { error } = await supabase
+                      .from('swipes')
+                      .insert({
+                        brand_id: user.id,
+                        model_name: modelsState[0]?.name,
+                        direction
+                      });
+                    if (error) {
+                      console.error('Error saving swipe:', error);
+                    }
+                  }
                   setModelsState((prev) => prev.slice(1));
                   setDragX(0);
                   setSwipeDirection(null);
@@ -385,7 +407,35 @@ export default function Home() {
               </button>
               <button
                 className="w-12 h-12 flex items-center justify-center rounded-full bg-green-100 text-green-500 text-2xl shadow-lg hover:bg-green-200 transition-all duration-300 hover:shadow-xl"
-                onClick={() => {
+                onClick={async () => {
+                  // Like-Button (rechts)
+                  const direction = 'right';
+                  if (!user) {
+                    const pendingSwipe = {
+                      model_name: modelsState[0]?.name,
+                      direction
+                    };
+                    localStorage.setItem('pendingSwipe', JSON.stringify(pendingSwipe));
+                    setShowBrandForm(true);
+                    setAuthMode('signup');
+                  } else {
+                    const { error } = await supabase
+                      .from('swipes')
+                      .insert({
+                        brand_id: user.id,
+                        model_name: modelsState[0]?.name,
+                        direction
+                      });
+                    if (error) {
+                      console.error('Error saving swipe:', error);
+                    }
+                    // E-Mail bei Right-Swipe
+                    await sendEmail(
+                      'family@felixtell.com',
+                      'New Match',
+                      `Brand ${user.email} matched with model ${modelsState[0]?.name}`
+                    );
+                  }
                   setModelsState((prev) => prev.slice(1));
                   setDragX(0);
                   setSwipeDirection(null);
