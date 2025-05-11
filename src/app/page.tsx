@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { supabase } from '@/config/supabase';
 import Link from 'next/link';
+import { User } from '@supabase/supabase-js';
 
 export default function Home() {
   const [showContactForm, setShowContactForm] = useState(false);
