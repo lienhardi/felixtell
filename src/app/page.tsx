@@ -375,20 +375,27 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-8 bg-blue-50">
-      <div className="flex flex-col items-center mb-10 mt-4" style={{width: 'fit-content', minWidth: 'min-content'}}>
-        <div className="flex flex-col items-center shadow-2xl rounded-xl overflow-hidden border border-[#E5C76B] bg-white hover:shadow-3xl transition-all duration-300">
-          <div className="bg-[#E5C76B] w-full px-8 py-5 flex flex-col items-center">
-            <h1 className="text-5xl font-bold font-playfair text-white tracking-wider drop-shadow-lg">Felix Tell</h1>
-          </div>
-          <div className="bg-black w-full px-8 py-3 flex flex-col items-center">
-            <p className="text-2xl font-playfair text-white tracking-wide drop-shadow-lg">Talents for Brands</p>
-          </div>
+    <div
+      className="flex flex-col items-center justify-center min-h-screen p-8"
+      style={{
+        background: "repeating-linear-gradient(135deg, #E8DCCE, #E8DCCE 40px, #F3EBDD 40px, #F3EBDD 80px)"
+      }}
+    >
+      <div className="flex flex-col items-center mb-10 mt-4">
+        <div className="w-full flex justify-center">
+          <Image
+            src="/Felix_Tell_logo.png"
+            alt="Felix Tell Artists' Bureau 1842"
+            width={420}
+            height={300}
+            style={{ maxWidth: '100%', height: 'auto' }}
+            priority
+          />
         </div>
       </div>
-      <div className="border-t-2 border-[var(--gold)] w-24 mx-auto my-4"></div>
-      <h2 className="text-3xl font-playfair text-black mb-2 mt-3">Become Partners!</h2>
-      <p className="text-lg text-black mb-8">You need each other, swipe right!</p>
+      <div className="elegant-divider"></div>
+      <h2 className="text-3xl elegant-heading text-black mb-2 mt-3">Discover Authentic Talent</h2>
+      <p className="text-lg text-gray-700 mb-8 max-w-2xl text-center">Since 1842, we've been discovering raw potential. Today, we continue this legacy by connecting emerging talents with brands that value authenticity. Your journey begins with a simple swipe.</p>
       
       {!user && (
         <div className="w-full flex justify-center -mt-2 mb-8">
@@ -499,7 +506,7 @@ export default function Home() {
           </div>
           <div className="flex flex-col sm:flex-row gap-6 mb-8">
             <button className="px-8 py-3 bg-[var(--gold)] text-white rounded-full text-lg font-semibold shadow-lg hover:bg-[var(--gold-light)] hover:text-[var(--gold)] transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5" onClick={openBecomeModelForm}>
-              Become a Model
+              Begin Your Legacy
             </button>
           </div>
         </>
@@ -585,18 +592,55 @@ export default function Home() {
             {!showForgotPassword ? (
               <>
                 <form onSubmit={handleAuth} className="w-full flex flex-col gap-3">
-                  <input type="email" placeholder="Email" className="border p-2 rounded" value={authEmail} onChange={e => setAuthEmail(e.target.value)} required />
-                  <input type="password" placeholder="Password" className="border p-2 rounded" value={authPassword} onChange={e => setAuthPassword(e.target.value)} required />
+                  <input
+                    type="email"
+                    placeholder="Email"
+                    className="border p-2 rounded"
+                    value={authEmail}
+                    onChange={e => setAuthEmail(e.target.value)}
+                    required
+                  />
+                  <input
+                    type="password"
+                    placeholder="Password"
+                    className="border p-2 rounded"
+                    value={authPassword}
+                    onChange={e => setAuthPassword(e.target.value)}
+                    required
+                  />
                   {authError && <div className="text-red-500 text-sm">{authError}</div>}
-                  <button type="submit" className="bg-[var(--gold)] text-white rounded px-4 py-2 font-semibold">{authMode === 'login' ? 'Login' : 'Sign Up'}</button>
+                  <button
+                    type="submit"
+                    className="bg-[var(--gold)] text-white rounded px-4 py-2 font-semibold"
+                  >
+                    {authMode === 'login' ? 'Login' : 'Sign Up'}
+                  </button>
+                  {authMode === 'login' && (
+                    <button
+                      type="button"
+                      className="mt-2 text-sm text-[var(--gold)] underline hover:text-black transition"
+                      onClick={() => setShowForgotPassword(true)}
+                    >
+                      Forgot password?
+                    </button>
+                  )}
                 </form>
-                <button className="mt-2 text-sm text-gray-500 underline hover:text-gray-700" onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}>
-                  {authMode === 'login' ? 'No account? Sign up' : 'Already have an account? Login'}
-                </button>
-                <button className="mt-2 text-sm text-gray-500 underline hover:text-gray-700" onClick={() => setShowForgotPassword(true)}>
-                  Forgot password?
-                </button>
-                <button className="mt-4 text-sm text-gray-500 underline hover:text-gray-700" onClick={() => setShowBrandForm(false)}>Close</button>
+                <div className="flex flex-col gap-2 mt-6 w-full">
+                  <button
+                    type="button"
+                    className="w-full py-2 rounded-full border border-[var(--gold)] bg-white text-[var(--gold)] text-sm font-medium transition hover:bg-[var(--gold)] hover:text-white focus:outline-none"
+                    onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}
+                  >
+                    {authMode === 'login' ? 'No account? Sign up' : 'Already have an account? Login'}
+                  </button>
+                  <button
+                    type="button"
+                    className="w-full py-2 rounded-full border border-gray-200 bg-gray-100 text-gray-500 text-sm font-medium transition hover:bg-gray-200 focus:outline-none"
+                    onClick={() => setShowBrandForm(false)}
+                  >
+                    Close
+                  </button>
+                </div>
               </>
             ) : (
               <>

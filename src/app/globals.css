@@ -4,10 +4,12 @@
 
 /* Neue CSS-Variablen für goldene Akzente */
 :root {
-  --gold: #F6D365;
-  --gold-light: #F9E7B4;
+  --gold: #F0C040;
+  --gold-light: #F7E7B0;
   --background: #ffffff;
   --foreground: #171717;
+  --elegant-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  --gold-shadow: 0 4px 24px rgba(240, 192, 64, 0.15);
 }
 
 @theme inline {
@@ -27,7 +29,57 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-cormorant), serif;
+  letter-spacing: 0.01em;
+}
+
+/* Elegante Schatten und Übergänge */
+.elegant-shadow {
+  box-shadow: var(--elegant-shadow);
+}
+
+.gold-shadow {
+  box-shadow: var(--gold-shadow);
+}
+
+/* Elegante Buttons */
+.elegant-button {
+  @apply px-6 py-2 rounded-full transition-all duration-300;
+  background: var(--gold);
+  color: white;
+  box-shadow: var(--gold-shadow);
+}
+
+.elegant-button:hover {
+  background: var(--gold-light);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 28px rgba(240, 192, 64, 0.2);
+}
+
+/* Elegante Karten */
+.elegant-card {
+  @apply rounded-xl p-6 transition-all duration-300;
+  background: white;
+  box-shadow: var(--elegant-shadow);
+  border: 1px solid rgba(240, 192, 64, 0.1);
+}
+
+.elegant-card:hover {
+  box-shadow: var(--gold-shadow);
+  transform: translateY(-2px);
+}
+
+/* Elegante Überschriften */
+.elegant-heading {
+  font-family: 'Playfair Display', serif;
+  letter-spacing: 0.02em;
+}
+
+/* Elegante Trennlinien */
+.elegant-divider {
+  @apply w-24 mx-auto my-4;
+  height: 2px;
+  background: linear-gradient(to right, transparent, var(--gold), transparent);
 }
 
 @keyframes fadein {

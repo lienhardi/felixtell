@@ -30,51 +30,57 @@ const sendEmail = async (to: string, subject: string, body: string) => {
 
 export default function About() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-8 bg-blue-50">
-      <div className="max-w-2xl w-full bg-white rounded-xl shadow-2xl p-8 mb-8">
-        <h1 className="text-4xl font-playfair text-black mb-6 text-center">About Felix Tell</h1>
+    <div className="flex flex-col items-center justify-center min-h-screen p-8 bg-gradient-to-b from-white to-gray-50">
+      <div className="max-w-3xl w-full elegant-card mb-8">
+        <h1 className="text-4xl elegant-heading text-black mb-8 text-center">About Felix Tell</h1>
         
-        <div className="space-y-6 text-gray-700">
-          <p className="leading-relaxed">
-            Dear talents, 
-            dear brands,
-            dear visitors and friends,
+        <div className="space-y-8 text-gray-700">
+          <p className="leading-relaxed text-lg">
+            Established in 1842 by the visionary Felix Tell, our agency has stood as a beacon of artistic excellence and human potential for over 180 years. What began as a small atelier in the heart of Europe has evolved into a sanctuary for emerging talent, while maintaining the timeless values of our founder.
+          </p>
+
+          <p className="leading-relaxed text-lg">
+            Felix Tell believed that true beauty lies not in perfection, but in authenticity. In an era where artistic expression was often confined to the privileged few, he opened his doors to those with raw talent and genuine passion. This revolutionary approach, which once challenged the conventions of his time, remains at the core of our philosophy today.
+          </p>
+
+          <p className="leading-relaxed text-lg">
+            In our modern age, we continue Felix Tell's legacy by embracing technology while preserving the human touch. We understand that the journey of a new talent begins in the comfort of their home, with a simple photograph that captures their essence. This intimate beginning is not a limitation, but rather a testament to the authentic nature of true potential.
+          </p>
+
+          <p className="leading-relaxed text-lg">
+            To our cherished talents:
+            <br />
+            Your journey begins with a single step - a photograph taken in your own space, where you feel most comfortable. We believe that this authenticity is your greatest strength. Our role is to nurture this raw potential, to guide you through the early stages of your career, and to ensure that your introduction to the world of modeling is both safe and dignified.
+          </p>
+
+          <p className="leading-relaxed text-lg">
+            To our valued brands:
+            <br />
+            In a world of polished perfection, we offer something different - the genuine spark of emerging talent. Our models are not just faces; they are individuals with unique stories, ready to bring authenticity to your brand. We carefully curate these connections, ensuring that each match represents not just a business opportunity, but a meaningful partnership.
+          </p>
+
+          <p className="leading-relaxed text-lg">
+            The digital age has transformed how we discover talent, but our commitment to excellence remains unchanged. We bridge the gap between tradition and innovation, between established prestige and emerging potential. Every new face that joins us becomes part of our legacy, continuing the story that Felix Tell began nearly two centuries ago.
+          </p>
+
+          <p className="leading-relaxed text-lg">
+            Join us in this journey of discovery and growth. Whether you're taking your first steps in modeling or seeking authentic talent for your brand, we invite you to be part of our continuing story.
+          </p>
+
+          <p className="leading-relaxed text-lg">
+            Contact us at family@felixtell.com
             <br />
             <br />
-            Thanks for stopping by and spending your valuable time with us!
+            With timeless dedication,
             <br />
-            <br />
-            Felix Tell supports and proudly presents talents who are worthy and who we protect.
-            <br />
-            <br />
-            Dear talents: 
-            <br />
-            Do you feel like your potential isn't being used to the fullest or in a way that degrades you? Then we hope you find a safe haven here. Lifelong.
-            <br />
-            <br />
-            Dear brands:
-            <br />
-             Are you tired of models or actors or brand ambassadors who are not really catching potential customers and viewers with their presence? Or are even repulsive to the eye or heart? We from Felix Tell are sometimes surprised by what bad models even the biggest companies use. A model should be a role model. A lot of people have to see your advertisements and your stock holders want revenue, so present responsibly!
-            <br />
-            <br />
-            That being said: Let's make it light and fun and get your pictures on the walls and your products sold!
-            <br />
-            <br />
-            Become a model with us or find a model for your projects by using Felix Tell.
-            <br />
-            Don't hesitate to contact us at family@felixtell.com
-            <br />
-            <br />
-            Cheers,
-            <br />
-            Felix Tell
+            The Felix Tell Family
           </p>
         </div>
       </div>
 
       <Link 
         href="/"
-        className="text-[var(--gold)] hover:text-[var(--gold-light)] transition-colors duration-300 text-sm font-medium tracking-wide"
+        className="elegant-button"
       >
         ← Back to Home
       </Link>
