@@ -401,11 +401,11 @@ export default function Home() {
         </div>
       )}
 
-      <div className="flex flex-col items-center mb-4" style={{position: 'relative', width: '16rem', height: '24rem'}}>
+      <div className="flex flex-col items-center mb-4" style={{position: 'relative', width: '18rem', height: '26rem'}}>
         {modelsState.length > 0 && !justRemoved && !showBecomeModelForm && (
           <div
             ref={swipeRef}
-            className={`w-64 h-96 bg-gray-100 flex flex-col items-center justify-between rounded-xl shadow-xl border border-[#E5C76B] mb-4 select-none z-10 p-6`}
+            className={`w-72 h-[26rem] bg-gray-100 flex flex-col items-center justify-between rounded-xl shadow-xl border border-[#E5C76B] mb-4 select-none p-6`}
             style={{ transform: `translateX(${dragX}px)` }}
             onMouseDown={handleTouchStart}
             onTouchStart={handleTouchStart}
@@ -413,9 +413,9 @@ export default function Home() {
             onTouchMove={isDragging ? handleTouchMove : undefined}
           >
             <span className="text-gray-600 font-medium text-2xl mt-4">{modelsState[0]?.name}</span>
-            <div className="flex justify-center gap-12 mb-4 mt-auto">
+            <div className="flex justify-center gap-10 mb-4 mt-auto">
               <button
-                className="w-14 h-14 flex items-center justify-center rounded-full bg-red-100 text-red-500 text-2xl shadow-lg hover:bg-red-200 transition-all duration-300 hover:shadow-xl"
+                className="w-12 h-12 flex items-center justify-center rounded-full bg-red-100 text-red-500 text-2xl shadow-lg hover:bg-red-200 transition-all duration-300 hover:shadow-xl"
                 onClick={async () => {
                   const direction = 'left';
                   if (!user) {
@@ -448,7 +448,7 @@ export default function Home() {
                 &#10006;
               </button>
               <button
-                className="w-14 h-14 flex items-center justify-center rounded-full bg-green-100 text-green-500 text-2xl shadow-lg hover:bg-green-200 transition-all duration-300 hover:shadow-xl"
+                className="w-12 h-12 flex items-center justify-center rounded-full bg-green-100 text-green-500 text-2xl shadow-lg hover:bg-green-200 transition-all duration-300 hover:shadow-xl"
                 onClick={async () => {
                   const direction = 'right';
                   if (!user) {
@@ -506,15 +506,56 @@ export default function Home() {
       )}
 
       {showContactForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-8 rounded">
-            <h2 className="text-2xl font-bold mb-4">Book a Talent</h2>
-            <form onSubmit={handleContactSubmit}>
-              <p>Please enter your email address or phone number:</p>
-              <input type="text" className="border p-2 w-full mb-4" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} />
-              <button type="submit" className="px-4 py-2 bg-[var(--gold)] text-white rounded">Send</button>
-              <button type="button" className="px-4 py-2 bg-gray-300 text-black rounded ml-2" onClick={() => setShowContactForm(false)}>Close</button>
-            </form>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-8 rounded shadow max-w-md w-full">
+            <h2 className="text-2xl font-bold mb-4">Contact</h2>
+            {user ? (
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (contactEmail.trim()) {
+                    await sendEmail(
+                      'family@felixtell.com',
+                      'Brand Contact Message',
+                      `Message from ${user.email}: ${contactEmail}`
+                    );
+                    setContactEmail('');
+                    setShowContactForm(false);
+                  }
+                }}
+              >
+                <p className="mb-2 text-gray-700">
+                  We will get back to you as soon as possible at your email address.
+                </p>
+                <textarea
+                  className="border p-2 w-full mb-4 rounded"
+                  placeholder="Your message"
+                  value={contactEmail}
+                  onChange={(e) => setContactEmail(e.target.value)}
+                  rows={4}
+                  required
+                />
+                <div className="flex gap-2">
+                  <button type="submit" className="px-4 py-2 bg-[var(--gold)] text-white rounded">Send</button>
+                  <button type="button" className="px-4 py-2 bg-gray-300 text-black rounded" onClick={() => setShowContactForm(false)}>Close</button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={handleContactSubmit}>
+                <p>Please enter your email address or phone number <span className="text-gray-400">(for WhatsApp)</span>:</p>
+                <input
+                  type="text"
+                  className="border p-2 w-full mb-4"
+                  value={contactEmail}
+                  onChange={(e) => setContactEmail(e.target.value)}
+                  required
+                />
+                <div className="flex gap-2">
+                  <button type="submit" className="px-4 py-2 bg-[var(--gold)] text-white rounded">Send</button>
+                  <button type="button" className="px-4 py-2 bg-gray-300 text-black rounded" onClick={() => setShowContactForm(false)}>Close</button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
@@ -572,7 +613,7 @@ export default function Home() {
       )}
 
       {user && (
-        <div className="mb-8 px-6 py-4 rounded-xl shadow-lg bg-white flex flex-col items-center border border-[#E5C76B] w-64" style={{boxShadow: '0 4px 24px 0 rgba(246,211,101,0.10)'}}>
+        <div className="mb-8 px-6 py-4 rounded-xl shadow-lg bg-white flex flex-col items-center border border-[#E5C76B] w-72" style={{boxShadow: '0 4px 24px 0 rgba(246,211,101,0.10)'}}>
           <div className="flex items-center gap-2 mb-2">
             <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#F6D365"/><text x="12" y="16" textAnchor="middle" fontSize="12" fill="#222" fontWeight="bold">@</text></svg>
             <span className="font-medium text-gray-700">Logged in as</span>
@@ -587,7 +628,15 @@ export default function Home() {
         </div>
       )}
 
-      <div className="mb-8 mt-0 pt-0">
+      <div className="mb-8 mt-0 pt-0 flex flex-col items-center w-full">
+        <button
+          className="px-6 py-2 rounded-full bg-white/90 text-[var(--gold)] border border-[var(--gold)] font-medium text-sm shadow-lg hover:bg-[var(--gold)] hover:text-white transition-all duration-300 hover:shadow-xl"
+          style={{ minWidth: '130px' }}
+          onClick={openContactForm}
+        >
+          Contact
+        </button>
+        <div className="w-32 my-8 border-t border-gray-300"></div>
         <Link 
           href="/about"
           className="text-gray-500 hover:text-[var(--gold)] transition-colors duration-300 text-sm font-medium tracking-wide"
