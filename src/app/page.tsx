@@ -239,12 +239,12 @@ export default function Home() {
             <h1 className="text-5xl font-bold font-playfair text-white tracking-wider drop-shadow-lg">Felix Tell</h1>
           </div>
           <div className="bg-black w-full px-8 py-3 flex flex-col items-center">
-            <p className="text-2xl font-playfair text-white tracking-wide drop-shadow-lg">Talents and Brands</p>
+            <p className="text-2xl font-playfair text-white tracking-wide drop-shadow-lg">Talents for Brands</p>
           </div>
         </div>
       </div>
       <div className="border-t-2 border-[var(--gold)] w-24 mx-auto my-4"></div>
-      <h2 className="text-3xl font-playfair text-black mb-2 mt-3">Become Partners</h2>
+      <h2 className="text-3xl font-playfair text-black mb-2 mt-3">Become Partners!</h2>
       <p className="text-lg text-black mb-8">You need each other, swipe right!</p>
       <div className="w-full flex justify-center mb-8">
         <button
