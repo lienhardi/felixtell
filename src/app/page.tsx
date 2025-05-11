@@ -204,23 +204,23 @@ export default function Home() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-8 bg-blue-50">
       <div className="flex flex-col items-center mb-10 mt-4" style={{width: 'fit-content', minWidth: 'min-content'}}>
-        <div className="flex flex-col items-center shadow-xl rounded-xl overflow-hidden border border-[#E5C76B] bg-white">
+        <div className="flex flex-col items-center shadow-2xl rounded-xl overflow-hidden border border-[#E5C76B] bg-white hover:shadow-3xl transition-all duration-300">
           <div className="bg-[#E5C76B] w-full px-8 py-5 flex flex-col items-center">
-            <h1 className="text-5xl font-bold font-playfair text-white tracking-wider drop-shadow">Felix Tell</h1>
+            <h1 className="text-5xl font-bold font-playfair text-white tracking-wider drop-shadow-lg">Felix Tell</h1>
           </div>
           <div className="bg-black w-full px-8 py-3 flex flex-col items-center">
-            <p className="text-2xl font-playfair text-white tracking-wide drop-shadow">Talents for Brands</p>
+            <p className="text-2xl font-playfair text-white tracking-wide drop-shadow-lg">Talents and Brands</p>
           </div>
         </div>
       </div>
       <div className="border-t-2 border-[var(--gold)] w-24 mx-auto my-4"></div>
-      <h2 className="text-3xl font-playfair text-black mb-2 mt-3">Become Partners</h2>
-      <p className="text-lg text-black mb-8">You need each other, swipe right!</p>
+      <h2 className="text-4xl font-playfair text-black mb-3 mt-3 tracking-wide">Become Partners!</h2>
+      <p className="text-lg text-gray-700 mb-8 leading-relaxed">You need each other, swipe right!</p>
       <div className="w-full flex justify-center mb-8">
         <button
           onClick={() => setShowBrandForm(true)}
-          className="px-4 py-1 rounded-full bg-white/80 text-[var(--gold)] border border-[var(--gold)] font-medium text-sm shadow-none hover:bg-[var(--gold)] hover:text-white transition-colors"
-          style={{minWidth: '110px'}}>
+          className="px-6 py-2 rounded-full bg-white/90 text-[var(--gold)] border border-[var(--gold)] font-medium text-sm shadow-lg hover:bg-[var(--gold)] hover:text-white transition-all duration-300 hover:shadow-xl"
+          style={{minWidth: '130px'}}>
           Brand Login / Register
         </button>
       </div>
@@ -266,10 +266,12 @@ export default function Home() {
         )}
       </div>
       <div className="flex items-center w-full justify-center mb-4">
-        <span className="text-gray-400 text-lg font-semibold">or</span>
+        <div className="w-24 h-px bg-gray-300"></div>
+        <span className="text-gray-500 text-lg font-medium mx-4">or</span>
+        <div className="w-24 h-px bg-gray-300"></div>
       </div>
       <div className="flex flex-col sm:flex-row gap-6 mb-8">
-        <button className="px-8 py-3 bg-[var(--gold)] text-white rounded-full text-lg font-semibold shadow hover:bg-[var(--gold-light)] hover:text-[var(--gold)] transition-colors duration-200" onClick={openBecomeModelForm}>
+        <button className="px-8 py-3 bg-[var(--gold)] text-white rounded-full text-lg font-semibold shadow-lg hover:bg-[var(--gold-light)] hover:text-[var(--gold)] transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5" onClick={openBecomeModelForm}>
           Become a Model
         </button>
       </div>
@@ -331,6 +333,16 @@ export default function Home() {
           <button className="bg-gray-300 text-black rounded px-4 py-2 font-semibold" onClick={handleLogout}>Logout</button>
         </div>
       )}
+
+      {/* About Link */}
+      <div className="mt-auto pt-8">
+        <a 
+          href="#" 
+          className="text-gray-500 hover:text-[var(--gold)] transition-colors duration-300 text-sm font-medium tracking-wide"
+        >
+          About Felix Tell
+        </a>
+      </div>
     </div>
   );
 }
