@@ -18,14 +18,13 @@ export default function Home() {
   const [authPassword, setAuthPassword] = useState('');
   const [authError, setAuthError] = useState('');
   const [user, setUser] = useState<User | null>(null);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [forgotPasswordMessage, setForgotPasswordMessage] = useState('');
 
-  const models = [
-    { name: 'Model 1', img: null },
-    { name: 'Model 2', img: null },
-    { name: 'Model 3', img: null },
-    { name: 'Model 4', img: null },
-  ];
-  const [modelsState, setModelsState] = useState(models);
+  // Models-Array mit 100 Platzhaltern
+  const allModels = Array.from({ length: 100 }, (_, i) => ({ name: `Model ${i + 1}`, img: null }));
+  const [modelsState, setModelsState] = useState(allModels);
   const [currentModel, setCurrentModel] = useState(0);
   const [swipeDirection, setSwipeDirection] = useState<null | 'left' | 'right'>(null);
 
@@ -307,6 +306,26 @@ export default function Home() {
     processPendingSwipe();
   }, [user]);
 
+  // Beim User-Login: Geswipte Models filtern
+  useEffect(() => {
+    const fetchSwipedModels = async () => {
+      if (user) {
+        const { data: swipes, error } = await supabase
+          .from('swipes')
+          .select('model_name')
+          .eq('brand_id', user.id);
+        if (!error && swipes) {
+          const swipedNames = new Set(swipes.map((s: any) => s.model_name));
+          setModelsState(allModels.filter((m) => !swipedNames.has(m.name)));
+        }
+      } else {
+        setModelsState(allModels);
+      }
+    };
+    fetchSwipedModels();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
@@ -317,22 +336,37 @@ export default function Home() {
       try {
         const { error } = await supabase.auth.signUp({ email: authEmail, password: authPassword });
         if (error) {
-          if (error.message.includes('duplicate key value') || error.message.includes('users_email_partial_key')) {
-            setAuthError('Diese E-Mail-Adresse ist bereits registriert. Bitte melden Sie sich an oder verwenden Sie eine andere E-Mail-Adresse.');
+          if (
+            error.message.includes('duplicate key value') ||
+            error.message.includes('users_email_partial_key')
+          ) {
+            setAuthError('This email address is already registered. Please log in or use another email address.');
           } else {
             setAuthError(error.message);
           }
         } else {
-          setAuthError('Bitte überprüfen Sie Ihre E-Mails für den Bestätigungslink.');
+          setAuthError('Please check your email for the confirmation link.');
         }
       } catch (err) {
         setAuthError('Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
       }
     }
   };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotPasswordMessage('');
+    const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail);
+    if (error) {
+      setForgotPasswordMessage('Error: ' + error.message);
+    } else {
+      setForgotPasswordMessage('If the email exists, a reset link has been sent.');
+    }
   };
 
   return (
@@ -374,7 +408,6 @@ export default function Home() {
               <button
                 className="w-12 h-12 flex items-center justify-center rounded-full bg-red-100 text-red-500 text-2xl shadow-lg hover:bg-red-200 transition-all duration-300 hover:shadow-xl"
                 onClick={async () => {
-                  // Dislike-Button (links)
                   const direction = 'left';
                   if (!user) {
                     const pendingSwipe = {
@@ -408,7 +441,6 @@ export default function Home() {
               <button
                 className="w-12 h-12 flex items-center justify-center rounded-full bg-green-100 text-green-500 text-2xl shadow-lg hover:bg-green-200 transition-all duration-300 hover:shadow-xl"
                 onClick={async () => {
-                  // Like-Button (rechts)
                   const direction = 'right';
                   if (!user) {
                     const pendingSwipe = {
@@ -429,7 +461,6 @@ export default function Home() {
                     if (error) {
                       console.error('Error saving swipe:', error);
                     }
-                    // E-Mail bei Right-Swipe
                     await sendEmail(
                       'family@felixtell.com',
                       'New Match',
@@ -496,21 +527,36 @@ export default function Home() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-8 rounded shadow flex flex-col items-center max-w-xs w-full">
             <h2 className="text-2xl font-bold mb-4">{authMode === 'login' ? 'Brand Login' : 'Brand Signup'}</h2>
-            <form onSubmit={handleAuth} className="w-full flex flex-col gap-3">
-              <input type="email" placeholder="E-Mail" className="border p-2 rounded" value={authEmail} onChange={e => setAuthEmail(e.target.value)} required />
-              <input type="password" placeholder="Password" className="border p-2 rounded" value={authPassword} onChange={e => setAuthPassword(e.target.value)} required />
-              {authError && <div className="text-red-500 text-sm">{authError}</div>}
-              <button type="submit" className="bg-[var(--gold)] text-white rounded px-4 py-2 font-semibold">{authMode === 'login' ? 'Login' : 'Sign Up'}</button>
-            </form>
-            <button className="mt-2 text-sm text-gray-500 underline" onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}>
-              {authMode === 'login' ? 'No account? Sign up' : 'Already have an account? Login'}
-            </button>
-            <button className="mt-4 text-sm text-gray-500 underline" onClick={() => setShowBrandForm(false)}>Close</button>
+            {!showForgotPassword ? (
+              <>
+                <form onSubmit={handleAuth} className="w-full flex flex-col gap-3">
+                  <input type="email" placeholder="Email" className="border p-2 rounded" value={authEmail} onChange={e => setAuthEmail(e.target.value)} required />
+                  <input type="password" placeholder="Password" className="border p-2 rounded" value={authPassword} onChange={e => setAuthPassword(e.target.value)} required />
+                  {authError && <div className="text-red-500 text-sm">{authError}</div>}
+                  <button type="submit" className="bg-[var(--gold)] text-white rounded px-4 py-2 font-semibold">{authMode === 'login' ? 'Login' : 'Sign Up'}</button>
+                </form>
+                <button className="mt-2 text-sm text-gray-500 underline hover:text-gray-700" onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}>
+                  {authMode === 'login' ? 'No account? Sign up' : 'Already have an account? Login'}
+                </button>
+                <button className="mt-2 text-sm text-gray-500 underline hover:text-gray-700" onClick={() => setShowForgotPassword(true)}>
+                  Forgot password?
+                </button>
+                <button className="mt-4 text-sm text-gray-500 underline hover:text-gray-700" onClick={() => setShowBrandForm(false)}>Close</button>
+              </>
+            ) : (
+              <>
+                <form onSubmit={handleForgotPassword} className="w-full flex flex-col gap-3">
+                  <input type="email" placeholder="Email for reset link" className="border p-2 rounded" value={forgotPasswordEmail} onChange={e => setForgotPasswordEmail(e.target.value)} required />
+                  <button type="submit" className="bg-[var(--gold)] text-white rounded px-4 py-2 font-semibold">Send reset link</button>
+                </form>
+                {forgotPasswordMessage && <div className="mt-2 text-green-600 text-sm">{forgotPasswordMessage}</div>}
+                <button className="mt-4 text-sm text-gray-500 underline hover:text-gray-700" onClick={() => setShowForgotPassword(false)}>Back to login</button>
+              </>
+            )}
           </div>
         </div>
       )}
 
-      {/* Nach Login: Begrüßung und Logout */}
       {user && (
         <div className="mb-8 w-full max-w-xs bg-white p-4 rounded shadow flex flex-col items-center">
           <span className="mb-2">Logged in as <b>{user.email}</b></span>
@@ -518,7 +564,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* About Link */}
       <div className="mt-auto pt-8">
         <Link 
           href="/about"
