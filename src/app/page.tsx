@@ -47,12 +47,48 @@ export default function Home() {
   };
 
   // handleTouchEnd muss angepasst werden:
-  const handleTouchEnd = (e: React.TouchEvent | React.MouseEvent) => {
+  const handleTouchEnd = async (e: React.TouchEvent | React.MouseEvent) => {
     if (!isSwiping.current) return;
     setIsDragging(false);
     const endX = 'changedTouches' in e ? e.changedTouches[0].clientX : (e as React.MouseEvent).clientX;
     const diff = endX - startX.current;
+    
     if (diff > 60 || diff < -60) {
+      const direction = diff > 60 ? 'right' : 'left';
+      
+      if (!user) {
+        // Wenn nicht angemeldet, Swipe speichern und Anmeldung fordern
+        const pendingSwipe = {
+          model_name: modelsState[0]?.name,
+          direction
+        };
+        localStorage.setItem('pendingSwipe', JSON.stringify(pendingSwipe));
+        setShowBrandForm(true);
+        setAuthMode('signup');
+      } else {
+        // Wenn angemeldet, Swipe in Supabase speichern
+        const { error } = await supabase
+          .from('swipes')
+          .insert({
+            brand_id: user.id,
+            model_name: modelsState[0]?.name,
+            direction
+          });
+
+        if (error) {
+          console.error('Error saving swipe:', error);
+        }
+
+        // Bei Rechtsswipe Benachrichtigung senden
+        if (direction === 'right') {
+          await sendEmail(
+            'family@felixtell.com',
+            'New Match',
+            `Brand ${user.email} matched with model ${modelsState[0]?.name}`
+          );
+        }
+      }
+
       setModelsState((prev) => prev.slice(1));
       setDragX(0);
       setSwipeDirection(null);
@@ -157,7 +193,7 @@ export default function Home() {
       const diff = clientX - startX.current;
       setDragX(diff);
     };
-    const handleUp = (e: MouseEvent | TouchEvent) => {
+    const handleUp = async (e: MouseEvent | TouchEvent) => {
       let clientX = 0;
       if ('changedTouches' in e && e.changedTouches.length > 0) {
         clientX = e.changedTouches[0].clientX;
@@ -166,7 +202,40 @@ export default function Home() {
       }
       const diff = clientX - startX.current;
       setIsDragging(false);
+      
       if (diff > 60 || diff < -60) {
+        const direction = diff > 60 ? 'right' : 'left';
+        
+        if (!user) {
+          const pendingSwipe = {
+            model_name: modelsState[0]?.name,
+            direction
+          };
+          localStorage.setItem('pendingSwipe', JSON.stringify(pendingSwipe));
+          setShowBrandForm(true);
+          setAuthMode('signup');
+        } else {
+          const { error } = await supabase
+            .from('swipes')
+            .insert({
+              brand_id: user.id,
+              model_name: modelsState[0]?.name,
+              direction
+            });
+
+          if (error) {
+            console.error('Error saving swipe:', error);
+          }
+
+          if (direction === 'right') {
+            await sendEmail(
+              'family@felixtell.com',
+              'New Match',
+              `Brand ${user.email} matched with model ${modelsState[0]?.name}`
+            );
+          }
+        }
+
         setModelsState((prev) => prev.slice(1));
         setDragX(0);
         setSwipeDirection(null);
@@ -202,6 +271,41 @@ export default function Home() {
     supabase.auth.getUser().then(({ data }) => setUser(data?.user ?? null));
     return () => { listener?.subscription.unsubscribe(); };
   }, []);
+
+  // Nach erfolgreicher Anmeldung/Registrierung den ausstehenden Swipe verarbeiten
+  useEffect(() => {
+    const processPendingSwipe = async () => {
+      if (user) {
+        const pendingSwipeStr = localStorage.getItem('pendingSwipe');
+        if (pendingSwipeStr) {
+          const pendingSwipe = JSON.parse(pendingSwipeStr);
+          const { error } = await supabase
+            .from('swipes')
+            .insert({
+              brand_id: user.id,
+              model_name: pendingSwipe.model_name,
+              direction: pendingSwipe.direction
+            });
+
+          if (error) {
+            console.error('Error saving pending swipe:', error);
+          }
+
+          if (pendingSwipe.direction === 'right') {
+            await sendEmail(
+              'family@felixtell.com',
+              'New Match',
+              `Brand ${user.email} matched with model ${pendingSwipe.model_name}`
+            );
+          }
+
+          localStorage.removeItem('pendingSwipe');
+        }
+      }
+    };
+
+    processPendingSwipe();
+  }, [user]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
