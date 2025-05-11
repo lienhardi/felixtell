@@ -203,14 +203,15 @@ export default function Home() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-8 bg-blue-50">
-      <div className="flex flex-col items-center mb-10 mt-4" style={{width: 'fit-content', minWidth: 'min-content'}}>
-        <div className="border-2 border-[var(--gold)] bg-[var(--gold)] rounded-none px-8 py-5 flex flex-col items-center w-full">
-          <h1 className="text-5xl font-bold font-playfair text-white">Felix Tell</h1>
+      <div className="flex flex-col items-center mb-12 mt-6 shadow-lg rounded-xl overflow-hidden border-2 border-[var(--gold)] bg-white">
+        <div className="bg-[var(--gold)] w-full px-8 py-5 flex flex-col items-center">
+          <h1 className="text-5xl font-bold font-playfair text-white tracking-wider drop-shadow">Felix Tell</h1>
         </div>
-        <div className="bg-black px-8 py-3 flex flex-col items-center w-full rounded-none" style={{marginTop: 0}}>
-          <p className="text-2xl font-playfair text-white tracking-wide">Talents for Brands</p>
+        <div className="bg-black w-full px-8 py-3 flex flex-col items-center">
+          <p className="text-2xl font-playfair text-white tracking-wide drop-shadow">Talents for Brands</p>
         </div>
       </div>
+      <div className="border-t-2 border-[var(--gold)] w-24 mx-auto my-4"></div>
       <h2 className="text-3xl font-playfair text-black mb-2">Become Partners</h2>
       <p className="text-lg text-black mb-8">You need each other, swipe right!</p>
       <div className="w-full flex justify-center mb-8">
