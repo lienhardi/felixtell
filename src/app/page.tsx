@@ -96,7 +96,7 @@ export default function Home() {
           to,
           subject,
           body,
-          from: to
+          reply_to: `"${to}" <${to}>`
         }),
       });
       
