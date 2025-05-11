@@ -1,46 +1,35 @@
 import { NextResponse } from 'next/server';
-
-export const runtime = 'edge';
+import nodemailer from 'nodemailer';
+// import authOptions from '../auth/authOptions'; // Nur falls benötigt
 
 export async function POST(request: Request) {
   try {
     const { to, subject, body, from } = await request.json();
+    console.log('Received email request:', { to, subject, body, from });
 
-    const response = await fetch('https://api.mailchannels.net/tx/v1/send', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
+    // E-Mail-Transporter konfigurieren
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
       },
-      body: JSON.stringify({
-        personalizations: [
-          {
-            to: [{ email: process.env.EMAIL_RECEIVE }],
-            reply_to: { email: from }
-          }
-        ],
-        from: {
-          email: process.env.EMAIL_USER,
-          name: 'Felix Tell'
-        },
-        subject: subject,
-        content: [
-          {
-            type: 'text/plain',
-            value: `From: ${from}\n\n${body}`
-          }
-        ]
-      })
     });
 
-    if (!response.ok) {
-      throw new Error('Failed to send email');
-    }
+    // E-Mail senden
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: process.env.EMAIL_RECEIVE,
+      subject: subject,
+      text: `From: ${from}\n\n${body}`,
+      replyTo: from
+    });
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error sending email:', error);
     return NextResponse.json(
-      { error: 'Failed to send email' },
+      { error: 'Failed to send email', details: error?.message || 'Unknown error' },
       { status: 500 }
     );
   }

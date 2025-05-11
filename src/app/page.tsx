@@ -90,6 +90,7 @@ export default function Home() {
 
   const sendEmail = async (to: string, subject: string, body: string) => {
     try {
+      console.log('Sending email:', { to, subject, body });
       const response = await fetch('/api/send-email', {
         method: 'POST',
         headers: {
@@ -103,8 +104,12 @@ export default function Home() {
         }),
       });
       
+      console.log('Email API response status:', response.status);
+      const responseData = await response.json();
+      console.log('Email API response:', responseData);
+      
       if (!response.ok) {
-        throw new Error('Failed to send email');
+        throw new Error(`Failed to send email: ${response.status} ${JSON.stringify(responseData)}`);
       }
       
       return true;
