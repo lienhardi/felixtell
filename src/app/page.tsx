@@ -391,7 +391,7 @@ export default function Home() {
       <p className="text-lg text-black mb-8">You need each other, swipe right!</p>
       
       {!user && (
-        <div className="w-full flex justify-center mb-8">
+        <div className="w-full flex justify-center -mt-2 mb-8">
           <button
             onClick={() => setShowBrandForm(true)}
             className="px-6 py-2 rounded-full bg-white/90 text-[var(--gold)] border border-[var(--gold)] font-medium text-sm shadow-lg hover:bg-[var(--gold)] hover:text-white transition-all duration-300 hover:shadow-xl"
