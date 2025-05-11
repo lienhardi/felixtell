@@ -2,6 +2,32 @@
 import React from 'react';
 import Link from 'next/link';
 
+const sendEmail = async (to: string, subject: string, body: string) => {
+  try {
+    const response = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        to,
+        subject,
+        body,
+        from: to
+      }),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to send email');
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error sending email:', error);
+    return false;
+  }
+};
+
 export default function About() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-8 bg-blue-50">

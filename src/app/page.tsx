@@ -88,21 +88,49 @@ export default function Home() {
     setShowBecomeModelForm(true);
   };
 
-  const sendEmail = (to: string, subject: string, body: string) => {
-    // Email logic placeholder
-    console.log(`E-Mail an ${to} gesendet: ${subject} - ${body}`);
+  const sendEmail = async (to: string, subject: string, body: string) => {
+    try {
+      const response = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to,
+          subject,
+          body,
+          from: to
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to send email');
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error sending email:', error);
+      return false;
+    }
   };
 
-  const handleContactSubmit = (e: React.FormEvent) => {
+  const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    sendEmail('felixtell123@gmail.com', 'New Brand Inquiry', `Email: ${contactEmail}`);
-    setShowContactForm(false);
+    if (contactEmail) {
+      await sendEmail(contactEmail, 'New Brand Inquiry', `Email: ${contactEmail}`);
+      setContactEmail('');
+      setShowContactForm(false);
+    }
   };
 
-  const handleBecomeModelSubmit = (e: React.FormEvent) => {
+  const handleBecomeModelSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    sendEmail('felixtell123@gmail.com', 'New Application', `Email: ${becomeModelEmail}, Age: ${becomeModelAge}`);
-    setShowBecomeModelForm(false);
+    if (becomeModelEmail && becomeModelAge) {
+      await sendEmail(becomeModelEmail, 'New Application', `Email: ${becomeModelEmail}, Age: ${becomeModelAge}`);
+      setBecomeModelEmail('');
+      setBecomeModelAge('');
+      setShowBecomeModelForm(false);
+    }
   };
 
   // handleTouchMove wieder aktivieren:
