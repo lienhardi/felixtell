@@ -212,7 +212,7 @@ export default function Home() {
         </div>
       </div>
       <div className="border-t-2 border-[var(--gold)] w-24 mx-auto my-4"></div>
-      <h2 className="text-3xl font-playfair text-black mb-2">Become Partners</h2>
+      <h2 className="text-3xl font-playfair text-black mb-2 mt-3">Become Partners</h2>
       <p className="text-lg text-black mb-8">You need each other, swipe right!</p>
       <div className="w-full flex justify-center mb-8">
         <button
