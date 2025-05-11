@@ -1,29 +1,40 @@
 import { NextResponse } from 'next/server';
-import nodemailer from 'nodemailer';
+
+export const runtime = 'edge';
 
 export async function POST(request: Request) {
   try {
     const { to, subject, body, from } = await request.json();
 
-    // E-Mail-Transporter konfigurieren
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
+    const response = await fetch('https://api.mailchannels.net/tx/v1/send', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
       },
+      body: JSON.stringify({
+        personalizations: [
+          {
+            to: [{ email: process.env.EMAIL_RECEIVE }],
+            reply_to: { email: from }
+          }
+        ],
+        from: {
+          email: process.env.EMAIL_USER,
+          name: 'Felix Tell'
+        },
+        subject: subject,
+        content: [
+          {
+            type: 'text/plain',
+            value: `From: ${from}\n\n${body}`
+          }
+        ]
+      })
     });
 
-    // E-Mail senden
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: process.env.EMAIL_RECEIVE,
-      subject: subject,
-      text: `From: ${from}\n\n${body}`,
-      replyTo: from
-    });
+    if (!response.ok) {
+      throw new Error('Failed to send email');
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
