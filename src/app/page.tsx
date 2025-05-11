@@ -331,7 +331,11 @@ export default function Home() {
     setAuthError('');
     if (authMode === 'login') {
       const { error } = await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
-      if (error) setAuthError(error.message);
+      if (error) {
+        setAuthError(error.message);
+      } else {
+        setShowBrandForm(false);
+      }
     } else {
       try {
         const { error } = await supabase.auth.signUp({ email: authEmail, password: authPassword });
@@ -346,6 +350,7 @@ export default function Home() {
           }
         } else {
           setAuthError('Please check your email for the confirmation link.');
+          setShowBrandForm(false);
         }
       } catch (err) {
         setAuthError('Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
@@ -384,29 +389,33 @@ export default function Home() {
       <div className="border-t-2 border-[var(--gold)] w-24 mx-auto my-4"></div>
       <h2 className="text-3xl font-playfair text-black mb-2 mt-3">Become Partners!</h2>
       <p className="text-lg text-black mb-8">You need each other, swipe right!</p>
-      <div className="w-full flex justify-center mb-8">
-        <button
-          onClick={() => setShowBrandForm(true)}
-          className="px-6 py-2 rounded-full bg-white/90 text-[var(--gold)] border border-[var(--gold)] font-medium text-sm shadow-lg hover:bg-[var(--gold)] hover:text-white transition-all duration-300 hover:shadow-xl"
-          style={{minWidth: '130px'}}>
-          Brand Login / Register
-        </button>
-      </div>
-      <div className="flex flex-col items-center mb-4" style={{position: 'relative', width: '16rem', height: '20rem'}}>
+      
+      {!user && (
+        <div className="w-full flex justify-center mb-8">
+          <button
+            onClick={() => setShowBrandForm(true)}
+            className="px-6 py-2 rounded-full bg-white/90 text-[var(--gold)] border border-[var(--gold)] font-medium text-sm shadow-lg hover:bg-[var(--gold)] hover:text-white transition-all duration-300 hover:shadow-xl"
+            style={{minWidth: '130px'}}>
+            Brand Login / Signup
+          </button>
+        </div>
+      )}
+
+      <div className="flex flex-col items-center mb-4" style={{position: 'relative', width: '16rem', height: '24rem'}}>
         {modelsState.length > 0 && !justRemoved && !showBecomeModelForm && (
           <div
             ref={swipeRef}
-            className={`w-64 h-80 bg-gray-100 flex flex-col items-center justify-between rounded-xl shadow-xl border border-[#E5C76B] mb-4 select-none z-10 p-6`}
+            className={`w-64 h-96 bg-gray-100 flex flex-col items-center justify-between rounded-xl shadow-xl border border-[#E5C76B] mb-4 select-none z-10 p-6`}
             style={{ transform: `translateX(${dragX}px)` }}
             onMouseDown={handleTouchStart}
             onTouchStart={handleTouchStart}
             onMouseMove={isDragging ? handleTouchMove : undefined}
             onTouchMove={isDragging ? handleTouchMove : undefined}
           >
-            <span className="text-gray-600 font-medium text-xl mt-4">{modelsState[0]?.name}</span>
-            <div className="flex justify-center gap-8 mb-2 mt-auto">
+            <span className="text-gray-600 font-medium text-2xl mt-4">{modelsState[0]?.name}</span>
+            <div className="flex justify-center gap-12 mb-4 mt-auto">
               <button
-                className="w-12 h-12 flex items-center justify-center rounded-full bg-red-100 text-red-500 text-2xl shadow-lg hover:bg-red-200 transition-all duration-300 hover:shadow-xl"
+                className="w-14 h-14 flex items-center justify-center rounded-full bg-red-100 text-red-500 text-2xl shadow-lg hover:bg-red-200 transition-all duration-300 hover:shadow-xl"
                 onClick={async () => {
                   const direction = 'left';
                   if (!user) {
@@ -439,7 +448,7 @@ export default function Home() {
                 &#10006;
               </button>
               <button
-                className="w-12 h-12 flex items-center justify-center rounded-full bg-green-100 text-green-500 text-2xl shadow-lg hover:bg-green-200 transition-all duration-300 hover:shadow-xl"
+                className="w-14 h-14 flex items-center justify-center rounded-full bg-green-100 text-green-500 text-2xl shadow-lg hover:bg-green-200 transition-all duration-300 hover:shadow-xl"
                 onClick={async () => {
                   const direction = 'right';
                   if (!user) {
@@ -480,16 +489,21 @@ export default function Home() {
           </div>
         )}
       </div>
-      <div className="flex items-center w-full justify-center mb-4">
-        <div className="w-24 h-px bg-gray-300"></div>
-        <span className="text-gray-500 text-lg font-medium mx-4">or</span>
-        <div className="w-24 h-px bg-gray-300"></div>
-      </div>
-      <div className="flex flex-col sm:flex-row gap-6 mb-8">
-        <button className="px-8 py-3 bg-[var(--gold)] text-white rounded-full text-lg font-semibold shadow-lg hover:bg-[var(--gold-light)] hover:text-[var(--gold)] transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5" onClick={openBecomeModelForm}>
-          Become a Model
-        </button>
-      </div>
+
+      {!user && (
+        <>
+          <div className="flex items-center w-full justify-center mb-4">
+            <div className="w-24 h-px bg-gray-300"></div>
+            <span className="text-gray-500 text-lg font-medium mx-4">or</span>
+            <div className="w-24 h-px bg-gray-300"></div>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-6 mb-8">
+            <button className="px-8 py-3 bg-[var(--gold)] text-white rounded-full text-lg font-semibold shadow-lg hover:bg-[var(--gold-light)] hover:text-[var(--gold)] transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5" onClick={openBecomeModelForm}>
+              Become a Model
+            </button>
+          </div>
+        </>
+      )}
 
       {showContactForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
@@ -558,13 +572,22 @@ export default function Home() {
       )}
 
       {user && (
-        <div className="mb-8 w-full max-w-xs bg-white p-4 rounded shadow flex flex-col items-center">
-          <span className="mb-2">Logged in as <b>{user.email}</b></span>
-          <button className="bg-gray-300 text-black rounded px-4 py-2 font-semibold" onClick={handleLogout}>Logout</button>
+        <div className="mb-8 px-6 py-4 rounded-xl shadow-lg bg-white flex flex-col items-center border border-[#E5C76B] w-64" style={{boxShadow: '0 4px 24px 0 rgba(246,211,101,0.10)'}}>
+          <div className="flex items-center gap-2 mb-2">
+            <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#F6D365"/><text x="12" y="16" textAnchor="middle" fontSize="12" fill="#222" fontWeight="bold">@</text></svg>
+            <span className="font-medium text-gray-700">Logged in as</span>
+          </div>
+          <div className="font-semibold text-lg text-black mb-3 break-all text-center">{user.email}</div>
+          <button
+            className="px-5 py-2 rounded-full bg-gray-200 text-gray-800 font-semibold shadow hover:bg-gray-300 transition"
+            onClick={handleLogout}
+          >
+            Logout
+          </button>
         </div>
       )}
 
-      <div className="mt-auto pt-8">
+      <div className="mb-8 mt-0 pt-0">
         <Link 
           href="/about"
           className="text-gray-500 hover:text-[var(--gold)] transition-colors duration-300 text-sm font-medium tracking-wide"
