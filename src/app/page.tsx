@@ -1,13 +1,8 @@
 "use client";
 import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import { createClient, User } from '@supabase/supabase-js';
+import { supabase } from '@/config/supabase';
 import Link from 'next/link';
-
-const supabase = createClient(
-  'https://gzlaxsumaorevaxyswoc.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd6bGF4c3VtYW9yZXZheHlzd29jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY4ODAzMjQsImV4cCI6MjA2MjQ1NjMyNH0.3yVwPjm4wDpHPCvVbKoG-8-Tr_pw8vz0XZ8hkMxMKa8'
-);
 
 export default function Home() {
   const [showContactForm, setShowContactForm] = useState(false);
@@ -248,8 +243,8 @@ export default function Home() {
         </div>
       </div>
       <div className="border-t-2 border-[var(--gold)] w-24 mx-auto my-4"></div>
-      <h2 className="text-4xl font-playfair text-black mb-3 mt-3 tracking-wide">Become Partners!</h2>
-      <p className="text-lg text-gray-700 mb-8 leading-relaxed">You need each other, swipe right!</p>
+      <h2 className="text-3xl font-playfair text-black mb-2 mt-16">Become Partners</h2>
+      <p className="text-lg text-black mb-8">You need each other, swipe right!</p>
       <div className="w-full flex justify-center mb-8">
         <button
           onClick={() => setShowBrandForm(true)}
