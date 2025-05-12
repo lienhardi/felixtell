@@ -394,8 +394,21 @@ export default function Home() {
         </div>
       </div>
       <div className="elegant-divider"></div>
-      <h2 className="text-3xl elegant-heading text-black mb-2 mt-3">Discover Authentic Talent</h2>
-      <p className="text-lg text-gray-700 mb-8 max-w-2xl text-center">Since 1842, we've been discovering raw potential. Today, we continue this legacy by connecting emerging talents with brands that value authenticity. Your journey begins with a simple swipe.</p>
+      <h2 className="text-3xl elegant-heading text-black mb-2 mt-3 text-center">Discover Authentic Talent</h2>
+      <p
+        className="text-base sm:text-lg"
+        style={{
+          color: "#3a2e1a",
+          lineHeight: 1.7,
+          maxWidth: 480,
+          margin: "0 auto",
+          textAlign: "center",
+          fontWeight: 400,
+          letterSpacing: "0.01em"
+        }}
+      >
+        Since 1842, we've been discovering raw potential. Today, we continue this legacy by connecting emerging talents with brands that value authenticity. Your journey begins with a simple swipe.
+      </p>
       
       {!user && (
         <div className="w-full flex justify-center -mt-2 mb-8">
