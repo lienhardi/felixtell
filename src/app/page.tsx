@@ -530,7 +530,7 @@ export default function Home() {
             <span className="text-gray-500 text-lg font-medium mx-4">or</span>
             <div className="w-24 h-px" style={{ background: "#cccccc" }}></div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-6 mb-28 mt-3">
+          <div className="flex flex-col sm:flex-row gap-6 mb-11 mt-3">
             <button
               className="px-10 py-4 bg-[var(--gold)] text-white rounded-full text-xl font-semibold shadow-lg hover:bg-[var(--gold-light)] hover:text-[var(--gold)] transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5"
               onClick={openBecomeModelForm}
@@ -703,6 +703,7 @@ export default function Home() {
       )}
 
       <div className="mb-12 mt-0 pt-0 flex flex-col items-center w-full">
+        <div className="w-full h-px bg-[#cccccc] mb-11"></div>
         <button
           className="px-8 py-3 rounded-full bg-white/90 text-[var(--gold)] border border-[var(--gold)] font-semibold text-xl shadow-lg hover:bg-[var(--gold)] hover:text-white transition-all duration-300 hover:shadow-xl mb-2"
           style={{ minWidth: '180px', fontSize: '1.25rem' }}
@@ -714,7 +715,7 @@ export default function Home() {
         <Link
           href="/about"
           className="text-gray-500 hover:text-[var(--gold)] transition-colors duration-300 text-lg font-medium tracking-wide"
-          style={{ textAlign: 'center' }}
+          style={{ textAlign: 'center', marginBottom: '-3rem' }}
         >
           About Felix Tell
         </Link>
