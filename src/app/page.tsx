@@ -392,15 +392,17 @@ export default function Home() {
       }}
     >
       <div className="flex flex-col items-center mb-10 mt-4">
-        <div className="w-full flex justify-center">
-        <Image
+        <div className="w-full flex justify-center" style={{ minHeight: 180 }}>
+          <Image
             src="/Felix_Tell_logo.png"
             alt="Felix Tell Artists' Bureau 1842"
             width={420}
-            height={300}
+            height={180}
             style={{ maxWidth: '100%', height: 'auto' }}
-          priority
-        />
+            priority
+            placeholder="blur"
+            blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIW2P4z8DwHwAFgwJ/lwQn2wAAAABJRU5ErkJggg=="
+          />
         </div>
       </div>
       <div className="elegant-divider"></div>
