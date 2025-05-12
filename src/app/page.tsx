@@ -10,6 +10,8 @@ export default function Home() {
   const [showBecomeModelForm, setShowBecomeModelForm] = useState(false);
   const [showBrandForm, setShowBrandForm] = useState(false);
   const [contactEmail, setContactEmail] = useState('');
+  const [contactMessage, setContactMessage] = useState('');
+  const [contactSuccess, setContactSuccess] = useState(false);
   const [becomeModelEmail, setBecomeModelEmail] = useState('');
   const [becomeModelAge, setBecomeModelAge] = useState('');
   const [userType, setUserType] = useState<'talent' | 'brand' | null>(null);
@@ -25,6 +27,8 @@ export default function Home() {
   const [hasLoadedLogo, setHasLoadedLogo] = useState(false);
   const [isPageLoaded, setIsPageLoaded] = useState(false);
   const [shouldStartAnimation, setShouldStartAnimation] = useState(false);
+  const [showRejectedModels, setShowRejectedModels] = useState(false);
+  const [rejectedModels, setRejectedModels] = useState<{name: string, id?: string}[]>([]);
 
   // Models-Array mit 100 Platzhaltern
   const allModels = Array.from({ length: 100 }, (_, i) => ({ name: `Model ${i + 1}`, img: null }));
@@ -189,10 +193,24 @@ export default function Home() {
 
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (contactEmail) {
-      await sendEmail(contactEmail, 'New Brand Inquiry', `Email: ${contactEmail}`);
-      setContactEmail('');
-      setShowContactForm(false);
+    if (contactEmail && contactMessage) {
+      const success = await sendEmail(
+        'family@felixtell.com', 
+        'New Brand Inquiry', 
+        `Email: ${contactEmail}\n\nMessage: ${contactMessage}`
+      );
+      
+      if (success) {
+        setContactSuccess(true);
+        
+        // Zurücksetzen nach 3 Sekunden
+        setTimeout(() => {
+          setContactEmail('');
+          setContactMessage('');
+          setContactSuccess(false);
+          setShowContactForm(false);
+        }, 3000);
+      }
     }
   };
 
@@ -362,6 +380,54 @@ export default function Home() {
     fetchSwipedModels();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  // Funktion zum Abrufen der abgelehnten Models (Linksswipes)
+  const fetchRejectedModels = async () => {
+    if (!user) return;
+    
+    const { data, error } = await supabase
+      .from('swipes')
+      .select('id, model_name')
+      .eq('brand_id', user.id)
+      .eq('direction', 'left');
+    
+    if (error) {
+      console.error('Error fetching rejected models:', error);
+      return;
+    }
+    
+    if (data) {
+      setRejectedModels(data.map(swipe => ({
+        name: swipe.model_name,
+        id: swipe.id
+      })));
+    }
+  };
+
+  // Funktion zum Wiederherstellen eines abgelehnten Models
+  const restoreRejectedModel = async (modelId: string, modelName: string) => {
+    if (!user) return;
+    
+    // Lösche den Swipe aus der Datenbank
+    const { error } = await supabase
+      .from('swipes')
+      .delete()
+      .eq('id', modelId);
+    
+    if (error) {
+      console.error('Error restoring model:', error);
+      return;
+    }
+    
+    // Aktualisiere die Liste der abgelehnten Models
+    setRejectedModels(prev => prev.filter(model => model.id !== modelId));
+    
+    // Füge das Model wieder zum modelsState hinzu
+    const modelToAdd = allModels.find(m => m.name === modelName);
+    if (modelToAdd) {
+      setModelsState(prev => [modelToAdd, ...prev]);
+    }
+  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -735,18 +801,31 @@ export default function Home() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white p-8 rounded shadow max-w-md w-full">
               <h2 className="text-2xl font-bold mb-4">Contact</h2>
-              {user ? (
+              {contactSuccess ? (
+                <div className="text-center py-8">
+                  <div className="text-green-600 text-3xl mb-2">✓</div>
+                  <p className="text-lg font-medium text-gray-800 mb-2">Message sent successfully!</p>
+                  <p className="text-gray-600">We'll get back to you as soon as possible.</p>
+                </div>
+              ) : user ? (
                 <form
                   onSubmit={async (e) => {
                     e.preventDefault();
-                    if (contactEmail.trim()) {
-                      await sendEmail(
+                    if (contactMessage.trim()) {
+                      const success = await sendEmail(
                         'family@felixtell.com',
                         'Brand Contact Message',
-                        `Message from ${user.email}: ${contactEmail}`
+                        `Message from ${user.email}: ${contactMessage}`
                       );
-                      setContactEmail('');
-                      setShowContactForm(false);
+                      
+                      if (success) {
+                        setContactSuccess(true);
+                        setTimeout(() => {
+                          setContactMessage('');
+                          setContactSuccess(false);
+                          setShowContactForm(false);
+                        }, 3000);
+                      }
                     }
                   }}
                 >
@@ -756,8 +835,8 @@ export default function Home() {
                   <textarea
                     className="border p-2 w-full mb-4 rounded"
                     placeholder="Your message"
-                    value={contactEmail}
-                    onChange={(e) => setContactEmail(e.target.value)}
+                    value={contactMessage}
+                    onChange={(e) => setContactMessage(e.target.value)}
                     rows={4}
                     required
                   />
@@ -768,14 +847,25 @@ export default function Home() {
                 </form>
               ) : (
                 <form onSubmit={handleContactSubmit}>
-                  <p>Please enter your email address or phone number <span className="text-gray-400">(for WhatsApp)</span>:</p>
+                  <p className="mb-2 text-gray-700">Please enter your email address:</p>
                   <input
-                    type="text"
-                    className="border p-2 w-full mb-4"
+                    type="email"
+                    className="border p-2 w-full mb-4 rounded"
+                    placeholder="Your email address"
                     value={contactEmail}
                     onChange={(e) => setContactEmail(e.target.value)}
                     required
                   />
+                  <p className="mb-2 text-gray-700">Your message:</p>
+                  <textarea
+                    className="border p-2 w-full mb-4 rounded"
+                    placeholder="How can we help you?"
+                    value={contactMessage}
+                    onChange={(e) => setContactMessage(e.target.value)}
+                    rows={4}
+                    required
+                  />
+                  <p className="text-sm text-gray-600 mb-4">We'll get back to you as soon as possible.</p>
                   <div className="flex gap-2">
                     <button type="submit" className="px-4 py-2 bg-[var(--gold)] text-white rounded">Send</button>
                     <button type="button" className="px-4 py-2 bg-gray-300 text-black rounded" onClick={() => setShowContactForm(false)}>Close</button>
@@ -883,11 +973,55 @@ export default function Home() {
             </div>
             <div className="font-semibold text-lg text-black mb-3 break-all text-center">{user.email}</div>
             <button
-              className="px-5 py-2 rounded-full bg-gray-200 text-gray-800 font-semibold shadow hover:bg-gray-300 transition"
+              className="px-5 py-2 rounded-full bg-white text-gray-600 border border-gray-300 text-sm font-medium shadow hover:bg-gray-100 transition"
+              onClick={() => {
+                setShowRejectedModels(true);
+                fetchRejectedModels();
+              }}
+            >
+              View Rejected Models
+            </button>
+            <button
+              className="mt-3 px-5 py-2 rounded-full bg-gray-200 text-gray-800 font-semibold shadow hover:bg-gray-300 transition"
               onClick={handleLogout}
             >
               Logout
             </button>
+          </div>
+        )}
+
+        {/* Dialog für abgelehnte Models */}
+        {showRejectedModels && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-xl shadow-xl max-w-md w-full">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold">Rejected Models</h2>
+                <button 
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300"
+                  onClick={() => setShowRejectedModels(false)}
+                >
+                  ×
+                </button>
+              </div>
+              
+              {rejectedModels.length === 0 ? (
+                <p className="text-gray-600 text-center py-8">No rejected models found.</p>
+              ) : (
+                <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+                  {rejectedModels.map((model) => (
+                    <div key={model.id} className="flex items-center justify-between p-3 border rounded-lg bg-gray-50">
+                      <span className="font-medium">{model.name}</span>
+                      <button
+                        className="px-3 py-1 rounded-full text-sm bg-white text-[var(--gold)] border border-[var(--gold)] font-medium hover:bg-[var(--gold)] hover:text-white transition"
+                        onClick={() => model.id && restoreRejectedModel(model.id, model.name)}
+                      >
+                        Restore
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
