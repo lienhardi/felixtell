@@ -465,8 +465,12 @@ export default function Home() {
               }}
             />
             {/* Objektiv */}
-            <circle
-              cx="160" cy="100" r="26"
+            <path
+              d="
+                M 178.4,81.6
+                A 26,26 0 1,1 141.6,118.4
+                A 26,26 0 1,1 178.4,81.6
+              "
               stroke="url(#gold-gradient)"
               strokeWidth="2.5"
               fill="none"
