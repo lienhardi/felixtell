@@ -24,6 +24,7 @@ export default function Home() {
   const [showSplash, setShowSplash] = useState(true);
   const [hasLoadedLogo, setHasLoadedLogo] = useState(false);
   const [isPageLoaded, setIsPageLoaded] = useState(false);
+  const [shouldStartAnimation, setShouldStartAnimation] = useState(false);
 
   // Models-Array mit 100 Platzhaltern
   const allModels = Array.from({ length: 100 }, (_, i) => ({ name: `Model ${i + 1}`, img: null }));
@@ -44,19 +45,23 @@ export default function Home() {
 
   // Warte auf vollständiges Laden der Seite
   useEffect(() => {
-    if (document.readyState === 'complete') {
+    if (document.readyState === 'interactive' || document.readyState === 'complete') {
       setIsPageLoaded(true);
+      setShouldStartAnimation(true);
     } else {
-      window.addEventListener('load', () => setIsPageLoaded(true));
-      return () => window.removeEventListener('load', () => setIsPageLoaded(true));
+      const handleLoad = () => {
+        setIsPageLoaded(true);
+        setShouldStartAnimation(true);
+      };
+      window.addEventListener('load', handleLoad);
+      return () => window.removeEventListener('load', handleLoad);
     }
   }, []);
 
   // Splash-Logik: Nur dieser eine useEffect
   useEffect(() => {
-    if (!isPageLoaded) return; // Warte auf vollständiges Laden
+    if (!isPageLoaded) return;
 
-    // Prüfe sessionStorage-Flag ODER Referrer
     const fromAbout = typeof window !== "undefined" && sessionStorage.getItem("fromAbout") === "1";
     const isFromAbout = document.referrer.includes('/about') || fromAbout;
 
@@ -66,7 +71,7 @@ export default function Home() {
     } else {
       const timeout = setTimeout(() => {
         setShowSplash(false);
-      }, 2100);
+      }, 1800);
       return () => clearTimeout(timeout);
     }
   }, [isPageLoaded]);
@@ -443,7 +448,7 @@ export default function Home() {
               style={{
                 strokeDasharray: 180,
                 strokeDashoffset: 180,
-                animation: 'drawBodyLeft 1.1s cubic-bezier(.77,0,.18,1) forwards'
+                animation: shouldStartAnimation ? 'drawBodyLeft 1.1s cubic-bezier(.77,0,.18,1) forwards' : 'none'
               }}
             />
             {/* Body rechts ab RECHTEM Rand des Suchers, läuft deutlich weiter nach links */}
@@ -465,7 +470,7 @@ export default function Home() {
               style={{
                 strokeDasharray: 280,
                 strokeDashoffset: 280,
-                animation: 'drawBodyRight 1.1s cubic-bezier(.77,0,.18,1) forwards'
+                animation: shouldStartAnimation ? 'drawBodyRight 1.1s cubic-bezier(.77,0,.18,1) forwards' : 'none'
               }}
             />
             {/* Sucher exakt zwischen Body-Segmenten */}
@@ -477,7 +482,7 @@ export default function Home() {
               style={{
                 strokeDasharray: 64,
                 strokeDashoffset: 64,
-                animation: 'drawFinder 1.1s cubic-bezier(.77,0,.18,1) forwards'
+                animation: shouldStartAnimation ? 'drawFinder 1.1s cubic-bezier(.77,0,.18,1) forwards' : 'none'
               }}
             />
             {/* Objektiv */}
@@ -493,7 +498,7 @@ export default function Home() {
               style={{
                 strokeDasharray: 163.36,
                 strokeDashoffset: 163.36,
-                animation: 'drawLens 1.1s cubic-bezier(.77,0,.18,1) forwards'
+                animation: shouldStartAnimation ? 'drawLens 1.1s cubic-bezier(.77,0,.18,1) forwards' : 'none'
               }}
             />
             {/* Blitz */}
