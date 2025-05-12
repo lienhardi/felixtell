@@ -388,24 +388,36 @@ export default function Home() {
   return (
     <>
       {showSplash && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 50, background: '#E8DCCE', display: 'flex', alignItems: 'center', justifyContent: 'center'
-        }}>
-          <svg width="180" height="40" viewBox="0 0 180 40">
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 50, background: '#E8DCCE',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'opacity 0.6s',
+            opacity: showSplash ? 1 : 0
+          }}
+        >
+          <svg width="400" height="120" viewBox="0 0 400 120" style={{ display: 'block' }}>
             <path
-              d="M10,30 Q60,5 90,30 T170,30"
+              id="wave"
+              d="M40,60 Q120,10 200,60 T360,60"
               stroke="#F0C040"
-              strokeWidth="3"
+              strokeWidth="4"
               fill="none"
-            >
-              <animate
-                attributeName="stroke-dasharray"
-                from="0,200"
-                to="200,0"
-                dur="1.2s"
-                fill="freeze"
-              />
-            </path>
+              strokeLinecap="round"
+              style={{
+                strokeDasharray: 800,
+                strokeDashoffset: showSplash ? 0 : 800,
+                transition: 'stroke-dashoffset 1.2s cubic-bezier(.77,0,.18,1)'
+              }}
+            />
+            <animate
+              xlinkHref="#wave"
+              attributeName="stroke-dashoffset"
+              from="800"
+              to="0"
+              dur="1.2s"
+              fill="freeze"
+            />
           </svg>
         </div>
       )}
