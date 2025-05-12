@@ -394,16 +394,18 @@ export default function Home() {
         </div>
       </div>
       <div className="elegant-divider"></div>
-      <h2 className="text-3xl elegant-heading text-black mb-2 mt-3 text-center">Discover Authentic Talent</h2>
+      <h2 className="text-4xl sm:text-5xl elegant-heading text-black mb-4 mt-3 text-center">
+        Discover Authentic Talent
+      </h2>
       <p
-        className="text-base sm:text-lg"
+        className="text-2xl sm:text-3xl"
         style={{
           color: "#3a2e1a",
-          lineHeight: 1.7,
-          maxWidth: 480,
-          margin: "0 auto",
+          lineHeight: 1.8,
+          maxWidth: 600,
+          margin: "0 auto 2.5rem auto",
           textAlign: "center",
-          fontWeight: 400,
+          fontWeight: 500,
           letterSpacing: "0.01em"
         }}
       >
@@ -411,11 +413,12 @@ export default function Home() {
       </p>
       
       {!user && (
-        <div className="w-full flex justify-center -mt-2 mb-8">
+        <div className="w-full flex justify-center mb-10">
           <button
             onClick={() => setShowBrandForm(true)}
-            className="px-6 py-2 rounded-full bg-white/90 text-[var(--gold)] border border-[var(--gold)] font-medium text-sm shadow-lg hover:bg-[var(--gold)] hover:text-white transition-all duration-300 hover:shadow-xl"
-            style={{minWidth: '130px'}}>
+            className="px-8 py-4 rounded-full bg-white/90 text-[var(--gold)] border border-[var(--gold)] font-semibold text-xl shadow-lg hover:bg-[var(--gold)] hover:text-white transition-all duration-300 hover:shadow-xl"
+            style={{ minWidth: '180px', fontSize: '1.35rem' }}
+          >
             Brand Login / Signup
           </button>
         </div>
@@ -517,9 +520,13 @@ export default function Home() {
             <span className="text-gray-500 text-lg font-medium mx-4">or</span>
             <div className="w-24 h-px bg-gray-300"></div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-6 mb-8">
-            <button className="px-8 py-3 bg-[var(--gold)] text-white rounded-full text-lg font-semibold shadow-lg hover:bg-[var(--gold-light)] hover:text-[var(--gold)] transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5" onClick={openBecomeModelForm}>
-              Begin Your Legacy
+          <div className="flex flex-col sm:flex-row gap-6 mb-10">
+            <button
+              className="px-10 py-4 bg-[var(--gold)] text-white rounded-full text-xl font-semibold shadow-lg hover:bg-[var(--gold-light)] hover:text-[var(--gold)] transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5"
+              onClick={openBecomeModelForm}
+              style={{ fontSize: '1.35rem', minWidth: '200px' }}
+            >
+              Become a Model
             </button>
           </div>
         </>
@@ -685,18 +692,19 @@ export default function Home() {
         </div>
       )}
 
-      <div className="mb-8 mt-0 pt-0 flex flex-col items-center w-full">
+      <div className="mb-12 mt-0 pt-0 flex flex-col items-center w-full">
         <button
-          className="px-6 py-2 rounded-full bg-white/90 text-[var(--gold)] border border-[var(--gold)] font-medium text-sm shadow-lg hover:bg-[var(--gold)] hover:text-white transition-all duration-300 hover:shadow-xl"
-          style={{ minWidth: '130px' }}
+          className="px-8 py-3 rounded-full bg-white/90 text-[var(--gold)] border border-[var(--gold)] font-semibold text-xl shadow-lg hover:bg-[var(--gold)] hover:text-white transition-all duration-300 hover:shadow-xl mb-4"
+          style={{ minWidth: '180px', fontSize: '1.25rem' }}
           onClick={openContactForm}
         >
           Contact
         </button>
         <div className="w-32 my-8 border-t border-gray-300"></div>
-        <Link 
+        <Link
           href="/about"
-          className="text-gray-500 hover:text-[var(--gold)] transition-colors duration-300 text-sm font-medium tracking-wide"
+          className="text-gray-500 hover:text-[var(--gold)] transition-colors duration-300 text-lg font-medium tracking-wide"
+          style={{ textAlign: 'center' }}
         >
           About Felix Tell
         </Link>
