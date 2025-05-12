@@ -398,27 +398,27 @@ export default function Home() {
         >
           <svg width="400" height="120" viewBox="0 0 400 120" style={{ display: 'block' }}>
             <path
-              id="wave"
-              d="M40,60 Q120,10 200,60 T360,60"
+              d="M40,60 Q90,10 140,60 T240,60 T340,60"
               stroke="#F0C040"
               strokeWidth="4"
               fill="none"
               strokeLinecap="round"
               style={{
-                strokeDasharray: 800,
-                strokeDashoffset: showSplash ? 0 : 800,
-                transition: 'stroke-dashoffset 1.2s cubic-bezier(.77,0,.18,1)'
+                strokeDasharray: 600,
+                strokeDashoffset: 600,
+                animation: 'drawline 1.2s cubic-bezier(.77,0,.18,1) forwards'
               }}
             />
-            <animate
-              xlinkHref="#wave"
-              attributeName="stroke-dashoffset"
-              from="800"
-              to="0"
-              dur="1.2s"
-              fill="freeze"
-            />
           </svg>
+          <style>
+            {`
+              @keyframes drawline {
+                to {
+                  stroke-dashoffset: 0;
+                }
+              }
+            `}
+          </style>
         </div>
       )}
 
