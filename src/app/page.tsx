@@ -378,30 +378,40 @@ export default function Home() {
     <div
       className="flex flex-col items-center justify-center min-h-screen p-8"
       style={{
-        background: "repeating-linear-gradient(135deg, #E8DCCE, #E8DCCE 40px, #F3EBDD 40px, #F3EBDD 80px)"
+        background: `
+          repeating-linear-gradient(
+            135deg,
+            #E8DCCE,
+            #E8DCCE 36px,
+            #F0C040 36px,
+            #F0C040 38px,
+            #F3EBDD 38px,
+            #F3EBDD 76px
+          )
+        `
       }}
     >
       <div className="flex flex-col items-center mb-10 mt-4">
         <div className="w-full flex justify-center">
-          <Image
+        <Image
             src="/Felix_Tell_logo.png"
             alt="Felix Tell Artists' Bureau 1842"
             width={420}
             height={300}
             style={{ maxWidth: '100%', height: 'auto' }}
-            priority
-          />
+          priority
+        />
         </div>
       </div>
       <div className="elegant-divider"></div>
       <h2 className="text-4xl sm:text-5xl elegant-heading text-black mb-4 mt-3 text-center">
-        Discover Authentic Talent
+        Authentic talent. Timeless values.
       </h2>
       <p
         className="text-2xl sm:text-3xl"
         style={{
           color: "#3a2e1a",
-          lineHeight: 1.8,
+          lineHeight: 1.6,
           maxWidth: 600,
           margin: "0 auto 2.5rem auto",
           textAlign: "center",
@@ -409,7 +419,7 @@ export default function Home() {
           letterSpacing: "0.01em"
         }}
       >
-        Since 1842, we've been discovering raw potential. Today, we continue this legacy by connecting emerging talents with brands that value authenticity. Your journey begins with a simple swipe.
+        Discover your match.
       </p>
       
       {!user && (
