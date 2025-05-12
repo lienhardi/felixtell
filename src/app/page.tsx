@@ -376,14 +376,19 @@ export default function Home() {
   };
 
   useEffect(() => {
-    // Optional: Timeout als Fallback, falls das Bild nicht lädt
-    const timeout = setTimeout(() => setShowSplash(false), 2500);
+    const timeout = setTimeout(() => {
+      if (showSplash) setShowSplash(false);
+    }, 1300);
     return () => clearTimeout(timeout);
-  }, []);
+  }, [showSplash]);
 
   const handleLogoLoad = () => {
     setShowSplash(false);
   };
+
+  useEffect(() => {
+    console.log('showSplash:', showSplash);
+  }, [showSplash]);
 
   return (
     <>
@@ -392,27 +397,67 @@ export default function Home() {
           style={{
             position: 'fixed', inset: 0, zIndex: 50, background: '#E8DCCE',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            transition: 'opacity 0.6s',
+            transition: 'opacity 0.18s',
             opacity: showSplash ? 1 : 0
           }}
         >
-          <svg width="400" height="120" viewBox="0 0 400 120" style={{ display: 'block' }}>
+          <svg width="120" height="120" viewBox="0 0 120 120" style={{ display: 'block' }}>
+            <defs>
+              <linearGradient id="gold-gradient" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#F5E6B3" />
+                <stop offset="100%" stopColor="#F0C040" />
+              </linearGradient>
+              <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+                <feMerge>
+                  <feMergeNode in="coloredBlur"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+            </defs>
             <path
-              d="M40,60 Q90,10 140,60 T240,60 T340,60"
-              stroke="#F0C040"
-              strokeWidth="4"
+              d="M30,90 Q60,20 90,90 Q70,70 60,100 Q55,80 30,90"
+              stroke="url(#gold-gradient)"
+              strokeWidth="2.2"
               fill="none"
               strokeLinecap="round"
+              filter="url(#glow)"
               style={{
-                strokeDasharray: 600,
-                strokeDashoffset: 600,
-                animation: 'drawline 1.2s cubic-bezier(.77,0,.18,1) forwards'
+                strokeDasharray: 260,
+                strokeDashoffset: 260,
+                animation: 'drawfeder 1.1s cubic-bezier(.77,0,.18,1) forwards'
               }}
+              onAnimationEnd={() => setShowSplash(false)}
             />
+            {/* Optional: kleiner Lichtreflex am Federende */}
+            <circle
+              cx="30"
+              cy="90"
+              r="3"
+              fill="#fffbe6"
+              opacity="0.7"
+            >
+              <animate
+                attributeName="opacity"
+                from="0.7"
+                to="0"
+                dur="0.5s"
+                begin="0.7s"
+                fill="freeze"
+              />
+              <animate
+                attributeName="r"
+                from="1"
+                to="3"
+                dur="0.5s"
+                begin="0.7s"
+                fill="freeze"
+              />
+            </circle>
           </svg>
           <style>
             {`
-              @keyframes drawline {
+              @keyframes drawfeder {
                 to {
                   stroke-dashoffset: 0;
                 }
@@ -447,7 +492,6 @@ export default function Home() {
               height={180}
               style={{ maxWidth: '100%', height: 'auto' }}
               priority
-              onLoad={handleLogoLoad}
             />
           </div>
         </div>
@@ -768,7 +812,7 @@ export default function Home() {
             About Felix Tell
           </Link>
         </div>
-      </div>
+    </div>
     </>
   );
 }
