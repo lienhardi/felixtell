@@ -378,7 +378,7 @@ export default function Home() {
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (showSplash) setShowSplash(false);
-    }, 1300);
+    }, 2100);
     return () => clearTimeout(timeout);
   }, [showSplash]);
 
@@ -401,66 +401,138 @@ export default function Home() {
             opacity: showSplash ? 1 : 0
           }}
         >
-          <svg width="120" height="120" viewBox="0 0 120 120" style={{ display: 'block' }}>
+          <svg width="320" height="180" viewBox="0 0 320 180" style={{ display: 'block' }}>
             <defs>
               <linearGradient id="gold-gradient" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor="#F5E6B3" />
-                <stop offset="100%" stopColor="#F0C040" />
+                <stop offset="0%" stopColor="#F0C040" />
+                <stop offset="50%" stopColor="#D4AF37" />
+                <stop offset="100%" stopColor="#BFA14A" />
               </linearGradient>
-              <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
-                <feMerge>
-                  <feMergeNode in="coloredBlur"/>
-                  <feMergeNode in="SourceGraphic"/>
-                </feMerge>
-              </filter>
             </defs>
+            {/* Body links bis zum linken Rand des Suchers */}
             <path
-              d="M30,90 Q60,20 90,90 Q70,70 60,100 Q55,80 30,90"
+              d="
+                M100,140
+                Q85,140 85,120
+                L85,80
+                Q85,65 120,65
+                L135,65
+                L145,50
+                L151,50
+              "
               stroke="url(#gold-gradient)"
-              strokeWidth="2.2"
+              strokeWidth="2.5"
               fill="none"
               strokeLinecap="round"
-              filter="url(#glow)"
               style={{
-                strokeDasharray: 260,
-                strokeDashoffset: 260,
-                animation: 'drawfeder 1.1s cubic-bezier(.77,0,.18,1) forwards'
+                strokeDasharray: 180,
+                strokeDashoffset: 180,
+                animation: 'drawBodyLeft 1.1s cubic-bezier(.77,0,.18,1) forwards'
               }}
-              onAnimationEnd={() => setShowSplash(false)}
             />
-            {/* Optional: kleiner Lichtreflex am Federende */}
+            {/* Body rechts ab RECHTEM Rand des Suchers, läuft deutlich weiter nach links */}
+            <path
+              d="
+                M169,50
+                L175,50
+                L185,65
+                L200,65
+                Q235,65 235,80
+                L235,120
+                Q235,140 220,140
+                L100,140
+              "
+              stroke="url(#gold-gradient)"
+              strokeWidth="2.5"
+              fill="none"
+              strokeLinecap="round"
+              style={{
+                strokeDasharray: 280,
+                strokeDashoffset: 280,
+                animation: 'drawBodyRight 1.1s cubic-bezier(.77,0,.18,1) forwards'
+              }}
+            />
+            {/* Sucher exakt zwischen Body-Segmenten */}
+            <rect
+              x="151" y="40" width="18" height="14" rx="3"
+              stroke="url(#gold-gradient)"
+              strokeWidth="2.5"
+              fill="none"
+              style={{
+                strokeDasharray: 64,
+                strokeDashoffset: 64,
+                animation: 'drawFinder 1.1s cubic-bezier(.77,0,.18,1) forwards'
+              }}
+            />
+            {/* Objektiv */}
             <circle
-              cx="30"
-              cy="90"
-              r="3"
+              cx="160" cy="100" r="26"
+              stroke="url(#gold-gradient)"
+              strokeWidth="2.5"
+              fill="none"
+              style={{
+                strokeDasharray: 163.36,
+                strokeDashoffset: 163.36,
+                animation: 'drawLens 1.1s cubic-bezier(.77,0,.18,1) forwards'
+              }}
+            />
+            {/* Blitz */}
+            <circle
+              cx="160" cy="34" r="9"
               fill="#fffbe6"
-              opacity="0.7"
+              opacity="0"
             >
               <animate
                 attributeName="opacity"
-                from="0.7"
+                from="0"
+                to="1"
+                dur="0.08s"
+                begin="1.2s"
+                fill="freeze"
+              />
+              <animate
+                attributeName="opacity"
+                from="1"
                 to="0"
-                dur="0.5s"
-                begin="0.7s"
+                dur="0.25s"
+                begin="1.28s"
                 fill="freeze"
               />
               <animate
                 attributeName="r"
-                from="1"
-                to="3"
-                dur="0.5s"
-                begin="0.7s"
+                from="9"
+                to="18"
+                dur="0.25s"
+                begin="1.28s"
                 fill="freeze"
               />
             </circle>
+            {/* Optional: Auslöser rechts oben */}
+            <rect
+              x="210" y="60" width="8" height="5" rx="2"
+              stroke="url(#gold-gradient)"
+              strokeWidth="2"
+              fill="none"
+              style={{
+                strokeDasharray: 20,
+                strokeDashoffset: 20,
+                animation: 'drawKnob 0.3s cubic-bezier(.77,0,.18,1) 1.1s forwards'
+              }}
+            />
           </svg>
           <style>
             {`
-              @keyframes drawfeder {
-                to {
-                  stroke-dashoffset: 0;
-                }
+              @keyframes drawBodyLeft {
+                to { stroke-dashoffset: 0; }
+              }
+              @keyframes drawBodyRight {
+                to { stroke-dashoffset: 0; }
+              }
+              @keyframes drawLens {
+                to { stroke-dashoffset: 0; }
+              }
+              @keyframes drawFinder {
+                to { stroke-dashoffset: 0; }
               }
             `}
           </style>
