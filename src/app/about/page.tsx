@@ -78,9 +78,14 @@ export default function About() {
         </div>
       </div>
 
-      <Link 
+      <Link
         href="/"
         className="elegant-button"
+        onClick={() => {
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem("fromAbout", "1");
+          }
+        }}
       >
         ← Back to Home
       </Link>

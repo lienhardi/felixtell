@@ -22,6 +22,7 @@ export default function Home() {
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
   const [forgotPasswordMessage, setForgotPasswordMessage] = useState('');
   const [showSplash, setShowSplash] = useState(true);
+  const [hasLoadedLogo, setHasLoadedLogo] = useState(false);
 
   // Models-Array mit 100 Platzhaltern
   const allModels = Array.from({ length: 100 }, (_, i) => ({ name: `Model ${i + 1}`, img: null }));
@@ -375,20 +376,22 @@ export default function Home() {
     }
   };
 
+  // Splash-Logik: Nur dieser eine useEffect
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      if (showSplash) setShowSplash(false);
-    }, 2100);
-    return () => clearTimeout(timeout);
-  }, [showSplash]);
+    // Prüfe sessionStorage-Flag ODER Referrer
+    const fromAbout = typeof window !== "undefined" && sessionStorage.getItem("fromAbout") === "1";
+    const isFromAbout = document.referrer.includes('/about') || fromAbout;
 
-  const handleLogoLoad = () => {
-    setShowSplash(false);
-  };
-
-  useEffect(() => {
-    console.log('showSplash:', showSplash);
-  }, [showSplash]);
+    if (isFromAbout) {
+      setShowSplash(false);
+      if (fromAbout) sessionStorage.removeItem("fromAbout");
+    } else {
+      const timeout = setTimeout(() => {
+        setShowSplash(false);
+      }, 2100);
+      return () => clearTimeout(timeout);
+    }
+  }, []);
 
   return (
     <>
