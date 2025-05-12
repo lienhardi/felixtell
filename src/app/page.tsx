@@ -404,7 +404,7 @@ export default function Home() {
         </div>
       </div>
       <div className="elegant-divider"></div>
-      <h2 className="text-4xl sm:text-5xl elegant-heading text-black mb-2 mt-3 text-center">
+      <h2 className="text-4xl sm:text-5xl elegant-heading text-black mb-2 mt-8 text-center">
         Authentic talent. Timeless values.
       </h2>
       <p
