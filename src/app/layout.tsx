@@ -14,7 +14,7 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: "Felix Tell | Artists' Bureau",
+  title: "Felix Tell Artists' Bureau",
   description: "Professional model agency for talents and brands.",
 };
 
