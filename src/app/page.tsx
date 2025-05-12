@@ -21,6 +21,7 @@ export default function Home() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
   const [forgotPasswordMessage, setForgotPasswordMessage] = useState('');
+  const [showSplash, setShowSplash] = useState(true);
 
   // Models-Array mit 100 Platzhaltern
   const allModels = Array.from({ length: 100 }, (_, i) => ({ name: `Model ${i + 1}`, img: null }));
@@ -374,354 +375,388 @@ export default function Home() {
     }
   };
 
+  useEffect(() => {
+    // Optional: Timeout als Fallback, falls das Bild nicht lädt
+    const timeout = setTimeout(() => setShowSplash(false), 2500);
+    return () => clearTimeout(timeout);
+  }, []);
+
+  const handleLogoLoad = () => {
+    setShowSplash(false);
+  };
+
   return (
-    <div
-      className="flex flex-col items-center justify-center min-h-screen p-8"
-      style={{
-        background: `
-          repeating-linear-gradient(
-            135deg,
-            #E8DCCE,
-            #E8DCCE 36px,
-            #F0C040 36px,
-            #F0C040 38px,
-            #F3EBDD 38px,
-            #F3EBDD 76px
-          )
-        `
-      }}
-    >
-      <div className="flex flex-col items-center mb-10 mt-4">
-        <div className="w-full flex justify-center" style={{ minHeight: 180 }}>
-          <Image
-            src="/Felix_Tell_logo.png"
-            alt="Felix Tell Artists' Bureau 1842"
-            width={420}
-            height={180}
-            style={{ maxWidth: '100%', height: 'auto' }}
-            priority
-            placeholder="blur"
-            blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIW2P4z8DwHwAFgwJ/lwQn2wAAAABJRU5ErkJggg=="
-          />
-        </div>
-      </div>
-      <div className="elegant-divider"></div>
-      <h2 className="text-4xl sm:text-5xl elegant-heading text-black mb-2 mt-8 text-center">
-        Authentic talent. Timeless values.
-      </h2>
-      <p
-        className="text-2xl sm:text-3xl"
-        style={{
-          color: "#3a2e1a",
-          lineHeight: 1.6,
-          maxWidth: 600,
-          margin: "0 auto 1.5rem auto",
-          textAlign: "center",
-          fontWeight: 500,
-          letterSpacing: "0.01em"
-        }}
-      >
-        Discover your match.
-      </p>
-      
-      {!user && (
-        <div className="w-full flex justify-center mb-9">
-          <button
-            onClick={() => setShowBrandForm(true)}
-            className="px-8 py-4 rounded-full bg-white/90 text-[var(--gold)] border border-[var(--gold)] font-semibold text-xl shadow-lg hover:bg-[var(--gold)] hover:text-white transition-all duration-300 hover:shadow-xl"
-            style={{ minWidth: '180px', fontSize: '1.35rem' }}
-          >
-            Brand Login / Signup
-          </button>
+    <>
+      {showSplash && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 50, background: '#E8DCCE', display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          <svg width="180" height="40" viewBox="0 0 180 40">
+            <path
+              d="M10,30 Q60,5 90,30 T170,30"
+              stroke="#F0C040"
+              strokeWidth="3"
+              fill="none"
+            >
+              <animate
+                attributeName="stroke-dasharray"
+                from="0,200"
+                to="200,0"
+                dur="1.2s"
+                fill="freeze"
+              />
+            </path>
+          </svg>
         </div>
       )}
 
-      <div className="flex flex-col items-center mb-4" style={{position: 'relative', width: '18rem', height: '26rem'}}>
-        {modelsState.length > 0 && !justRemoved && !showBecomeModelForm && (
-          <div
-            ref={swipeRef}
-            className={`w-72 h-[26rem] bg-gray-100 flex flex-col items-center justify-between rounded-xl shadow-xl border border-[#E5C76B] mb-4 select-none p-6`}
-            style={{ transform: `translateX(${dragX}px)` }}
-            onMouseDown={handleTouchStart}
-            onTouchStart={handleTouchStart}
-            onMouseMove={isDragging ? handleTouchMove : undefined}
-            onTouchMove={isDragging ? handleTouchMove : undefined}
-          >
-            <span className="text-gray-600 font-medium text-2xl mt-4">{modelsState[0]?.name}</span>
-            <div className="flex justify-center gap-10 mb-4 mt-auto">
-              <button
-                className="w-12 h-12 flex items-center justify-center rounded-full bg-red-100 text-red-500 text-2xl shadow-lg hover:bg-red-200 transition-all duration-300 hover:shadow-xl"
-                onClick={async () => {
-                  const direction = 'left';
-                  if (!user) {
-                    const pendingSwipe = {
-                      model_name: modelsState[0]?.name,
-                      direction
-                    };
-                    localStorage.setItem('pendingSwipe', JSON.stringify(pendingSwipe));
-                    setShowBrandForm(true);
-                    setAuthMode('signup');
-                  } else {
-                    const { error } = await supabase
-                      .from('swipes')
-                      .insert({
-                        brand_id: user.id,
+      <div
+        className="flex flex-col items-center justify-center min-h-screen p-8"
+        style={{
+          background: `
+            repeating-linear-gradient(
+              135deg,
+              #E8DCCE,
+              #E8DCCE 36px,
+              #F0C040 36px,
+              #F0C040 38px,
+              #F3EBDD 38px,
+              #F3EBDD 76px
+            )
+          `
+        }}
+      >
+        <div className="flex flex-col items-center mb-10 mt-4">
+          <div className="w-full flex justify-center" style={{ minHeight: 180 }}>
+            <Image
+              src="/Felix_Tell_logo.png"
+              alt="Felix Tell Artists' Bureau 1842"
+              width={420}
+              height={180}
+              style={{ maxWidth: '100%', height: 'auto' }}
+              priority
+              onLoad={handleLogoLoad}
+            />
+          </div>
+        </div>
+        <div className="elegant-divider"></div>
+        <h2 className="text-4xl sm:text-5xl elegant-heading text-black mb-2 mt-8 text-center">
+          Authentic talent. Timeless values.
+        </h2>
+        <p
+          className="text-2xl sm:text-3xl"
+          style={{
+            color: "#3a2e1a",
+            lineHeight: 1.6,
+            maxWidth: 600,
+            margin: "0 auto 1.5rem auto",
+            textAlign: "center",
+            fontWeight: 500,
+            letterSpacing: "0.01em"
+          }}
+        >
+          Discover your match.
+        </p>
+        
+        {!user && (
+          <div className="w-full flex justify-center mb-9">
+            <button
+              onClick={() => setShowBrandForm(true)}
+              className="px-8 py-4 rounded-full bg-white/90 text-[var(--gold)] border border-[var(--gold)] font-semibold text-xl shadow-lg hover:bg-[var(--gold)] hover:text-white transition-all duration-300 hover:shadow-xl"
+              style={{ minWidth: '180px', fontSize: '1.35rem' }}
+            >
+              Brand Login / Signup
+            </button>
+          </div>
+        )}
+
+        <div className="flex flex-col items-center mb-4" style={{position: 'relative', width: '18rem', height: '26rem'}}>
+          {modelsState.length > 0 && !justRemoved && !showBecomeModelForm && (
+            <div
+              ref={swipeRef}
+              className={`w-72 h-[26rem] bg-gray-100 flex flex-col items-center justify-between rounded-xl shadow-xl border border-[#E5C76B] mb-4 select-none p-6`}
+              style={{ transform: `translateX(${dragX}px)` }}
+              onMouseDown={handleTouchStart}
+              onTouchStart={handleTouchStart}
+              onMouseMove={isDragging ? handleTouchMove : undefined}
+              onTouchMove={isDragging ? handleTouchMove : undefined}
+            >
+              <span className="text-gray-600 font-medium text-2xl mt-4">{modelsState[0]?.name}</span>
+              <div className="flex justify-center gap-10 mb-4 mt-auto">
+                <button
+                  className="w-12 h-12 flex items-center justify-center rounded-full bg-red-100 text-red-500 text-2xl shadow-lg hover:bg-red-200 transition-all duration-300 hover:shadow-xl"
+                  onClick={async () => {
+                    const direction = 'left';
+                    if (!user) {
+                      const pendingSwipe = {
                         model_name: modelsState[0]?.name,
                         direction
-                      });
-                    if (error) {
-                      console.error('Error saving swipe:', error);
+                      };
+                      localStorage.setItem('pendingSwipe', JSON.stringify(pendingSwipe));
+                      setShowBrandForm(true);
+                      setAuthMode('signup');
+                    } else {
+                      const { error } = await supabase
+                        .from('swipes')
+                        .insert({
+                          brand_id: user.id,
+                          model_name: modelsState[0]?.name,
+                          direction
+                        });
+                      if (error) {
+                        console.error('Error saving swipe:', error);
+                      }
                     }
-                  }
-                  setModelsState((prev) => prev.slice(1));
-                  setDragX(0);
-                  setSwipeDirection(null);
-                  setJustRemoved(true);
-                }}
-                aria-label="Dislike"
-              >
-                &#10006;
-              </button>
-              <button
-                className="w-12 h-12 flex items-center justify-center rounded-full bg-green-100 text-green-500 text-2xl shadow-lg hover:bg-green-200 transition-all duration-300 hover:shadow-xl"
-                onClick={async () => {
-                  const direction = 'right';
-                  if (!user) {
-                    const pendingSwipe = {
-                      model_name: modelsState[0]?.name,
-                      direction
-                    };
-                    localStorage.setItem('pendingSwipe', JSON.stringify(pendingSwipe));
-                    setShowBrandForm(true);
-                    setAuthMode('signup');
-                  } else {
-                    const { error } = await supabase
-                      .from('swipes')
-                      .insert({
-                        brand_id: user.id,
+                    setModelsState((prev) => prev.slice(1));
+                    setDragX(0);
+                    setSwipeDirection(null);
+                    setJustRemoved(true);
+                  }}
+                  aria-label="Dislike"
+                >
+                  &#10006;
+                </button>
+                <button
+                  className="w-12 h-12 flex items-center justify-center rounded-full bg-green-100 text-green-500 text-2xl shadow-lg hover:bg-green-200 transition-all duration-300 hover:shadow-xl"
+                  onClick={async () => {
+                    const direction = 'right';
+                    if (!user) {
+                      const pendingSwipe = {
                         model_name: modelsState[0]?.name,
                         direction
-                      });
-                    if (error) {
-                      console.error('Error saving swipe:', error);
+                      };
+                      localStorage.setItem('pendingSwipe', JSON.stringify(pendingSwipe));
+                      setShowBrandForm(true);
+                      setAuthMode('signup');
+                    } else {
+                      const { error } = await supabase
+                        .from('swipes')
+                        .insert({
+                          brand_id: user.id,
+                          model_name: modelsState[0]?.name,
+                          direction
+                        });
+                      if (error) {
+                        console.error('Error saving swipe:', error);
+                      }
+                      await sendEmail(
+                        'family@felixtell.com',
+                        'New Match',
+                        `Brand ${user.email} matched with model ${modelsState[0]?.name}`
+                      );
                     }
-                    await sendEmail(
-                      'family@felixtell.com',
-                      'New Match',
-                      `Brand ${user.email} matched with model ${modelsState[0]?.name}`
-                    );
-                  }
-                  setModelsState((prev) => prev.slice(1));
-                  setDragX(0);
-                  setSwipeDirection(null);
-                  setJustRemoved(true);
-                }}
-                aria-label="Like"
+                    setModelsState((prev) => prev.slice(1));
+                    setDragX(0);
+                    setSwipeDirection(null);
+                    setJustRemoved(true);
+                  }}
+                  aria-label="Like"
+                >
+                  &#10004;
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {!user && (
+          <>
+            <div className="flex items-center w-full justify-center mb-4">
+              <div className="w-24 h-px" style={{ background: "#cccccc" }}></div>
+              <span className="text-gray-500 text-lg font-medium mx-4">or</span>
+              <div className="w-24 h-px" style={{ background: "#cccccc" }}></div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-6 mb-11 mt-3">
+              <button
+                className="px-10 py-4 bg-[var(--gold)] text-white rounded-full text-xl font-semibold shadow-lg hover:bg-[var(--gold-light)] hover:text-[var(--gold)] transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5"
+                onClick={openBecomeModelForm}
+                style={{ fontSize: '1.35rem', minWidth: '200px' }}
               >
-                &#10004;
+                Become a Model
               </button>
+            </div>
+          </>
+        )}
+
+        {showContactForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-8 rounded shadow max-w-md w-full">
+              <h2 className="text-2xl font-bold mb-4">Contact</h2>
+              {user ? (
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (contactEmail.trim()) {
+                      await sendEmail(
+                        'family@felixtell.com',
+                        'Brand Contact Message',
+                        `Message from ${user.email}: ${contactEmail}`
+                      );
+                      setContactEmail('');
+                      setShowContactForm(false);
+                    }
+                  }}
+                >
+                  <p className="mb-2 text-gray-700">
+                    We will get back to you as soon as possible at your email address.
+                  </p>
+                  <textarea
+                    className="border p-2 w-full mb-4 rounded"
+                    placeholder="Your message"
+                    value={contactEmail}
+                    onChange={(e) => setContactEmail(e.target.value)}
+                    rows={4}
+                    required
+                  />
+                  <div className="flex gap-2">
+                    <button type="submit" className="px-4 py-2 bg-[var(--gold)] text-white rounded">Send</button>
+                    <button type="button" className="px-4 py-2 bg-gray-300 text-black rounded" onClick={() => setShowContactForm(false)}>Close</button>
+                  </div>
+                </form>
+              ) : (
+                <form onSubmit={handleContactSubmit}>
+                  <p>Please enter your email address or phone number <span className="text-gray-400">(for WhatsApp)</span>:</p>
+                  <input
+                    type="text"
+                    className="border p-2 w-full mb-4"
+                    value={contactEmail}
+                    onChange={(e) => setContactEmail(e.target.value)}
+                    required
+                  />
+                  <div className="flex gap-2">
+                    <button type="submit" className="px-4 py-2 bg-[var(--gold)] text-white rounded">Send</button>
+                    <button type="button" className="px-4 py-2 bg-gray-300 text-black rounded" onClick={() => setShowContactForm(false)}>Close</button>
+                  </div>
+                </form>
+              )}
             </div>
           </div>
         )}
-      </div>
 
-      {!user && (
-        <>
-          <div className="flex items-center w-full justify-center mb-4">
-            <div className="w-24 h-px" style={{ background: "#cccccc" }}></div>
-            <span className="text-gray-500 text-lg font-medium mx-4">or</span>
-            <div className="w-24 h-px" style={{ background: "#cccccc" }}></div>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-6 mb-11 mt-3">
-            <button
-              className="px-10 py-4 bg-[var(--gold)] text-white rounded-full text-xl font-semibold shadow-lg hover:bg-[var(--gold-light)] hover:text-[var(--gold)] transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5"
-              onClick={openBecomeModelForm}
-              style={{ fontSize: '1.35rem', minWidth: '200px' }}
-            >
-              Become a Model
-            </button>
-          </div>
-        </>
-      )}
-
-      {showContactForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-8 rounded shadow max-w-md w-full">
-            <h2 className="text-2xl font-bold mb-4">Contact</h2>
-            {user ? (
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  if (contactEmail.trim()) {
-                    await sendEmail(
-                      'family@felixtell.com',
-                      'Brand Contact Message',
-                      `Message from ${user.email}: ${contactEmail}`
-                    );
-                    setContactEmail('');
-                    setShowContactForm(false);
-                  }
-                }}
-              >
-                <p className="mb-2 text-gray-700">
-                  We will get back to you as soon as possible at your email address.
-                </p>
-                <textarea
-                  className="border p-2 w-full mb-4 rounded"
-                  placeholder="Your message"
-                  value={contactEmail}
-                  onChange={(e) => setContactEmail(e.target.value)}
-                  rows={4}
-                  required
-                />
-                <div className="flex gap-2">
-                  <button type="submit" className="px-4 py-2 bg-[var(--gold)] text-white rounded">Send</button>
-                  <button type="button" className="px-4 py-2 bg-gray-300 text-black rounded" onClick={() => setShowContactForm(false)}>Close</button>
-                </div>
+        {showBecomeModelForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <div className="bg-white p-8 rounded">
+              <h2 className="text-2xl font-bold mb-4">Become a Model</h2>
+              <form onSubmit={handleBecomeModelSubmit}>
+                <p>Please enter your email address or phone number:</p>
+                <input type="text" className="border p-2 w-full mb-4" value={becomeModelEmail} onChange={(e) => setBecomeModelEmail(e.target.value)} />
+                <p>Age:</p>
+                <input type="number" className="border p-2 w-full mb-4" value={becomeModelAge} onChange={(e) => setBecomeModelAge(e.target.value)} />
+                <p>Upload photos:</p>
+                <input type="file" className="mb-4" />
+                <button type="submit" className="px-4 py-2 bg-[var(--gold)] text-white rounded">Send</button>
+                <button type="button" className="px-4 py-2 bg-gray-300 text-black rounded ml-2" onClick={() => setShowBecomeModelForm(false)}>Close</button>
               </form>
-            ) : (
-              <form onSubmit={handleContactSubmit}>
-                <p>Please enter your email address or phone number <span className="text-gray-400">(for WhatsApp)</span>:</p>
-                <input
-                  type="text"
-                  className="border p-2 w-full mb-4"
-                  value={contactEmail}
-                  onChange={(e) => setContactEmail(e.target.value)}
-                  required
-                />
-                <div className="flex gap-2">
-                  <button type="submit" className="px-4 py-2 bg-[var(--gold)] text-white rounded">Send</button>
-                  <button type="button" className="px-4 py-2 bg-gray-300 text-black rounded" onClick={() => setShowContactForm(false)}>Close</button>
-                </div>
-              </form>
-            )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {showBecomeModelForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-8 rounded">
-            <h2 className="text-2xl font-bold mb-4">Become a Model</h2>
-            <form onSubmit={handleBecomeModelSubmit}>
-              <p>Please enter your email address or phone number:</p>
-              <input type="text" className="border p-2 w-full mb-4" value={becomeModelEmail} onChange={(e) => setBecomeModelEmail(e.target.value)} />
-              <p>Age:</p>
-              <input type="number" className="border p-2 w-full mb-4" value={becomeModelAge} onChange={(e) => setBecomeModelAge(e.target.value)} />
-              <p>Upload photos:</p>
-              <input type="file" className="mb-4" />
-              <button type="submit" className="px-4 py-2 bg-[var(--gold)] text-white rounded">Send</button>
-              <button type="button" className="px-4 py-2 bg-gray-300 text-black rounded ml-2" onClick={() => setShowBecomeModelForm(false)}>Close</button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {showBrandForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-8 rounded shadow flex flex-col items-center max-w-xs w-full">
-            <h2 className="text-2xl font-bold mb-4">{authMode === 'login' ? 'Brand Login' : 'Brand Signup'}</h2>
-            {!showForgotPassword ? (
-              <>
-                <form onSubmit={handleAuth} className="w-full flex flex-col gap-3">
-                  <input
-                    type="email"
-                    placeholder="Email"
-                    className="border p-2 rounded"
-                    value={authEmail}
-                    onChange={e => setAuthEmail(e.target.value)}
-                    required
-                  />
-                  <input
-                    type="password"
-                    placeholder="Password"
-                    className="border p-2 rounded"
-                    value={authPassword}
-                    onChange={e => setAuthPassword(e.target.value)}
-                    required
-                  />
-                  {authError && <div className="text-red-500 text-sm">{authError}</div>}
-                  <button
-                    type="submit"
-                    className="bg-[var(--gold)] text-white rounded px-4 py-2 font-semibold"
-                  >
-                    {authMode === 'login' ? 'Login' : 'Sign Up'}
-                  </button>
-                  {authMode === 'login' && (
+        {showBrandForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-8 rounded shadow flex flex-col items-center max-w-xs w-full">
+              <h2 className="text-2xl font-bold mb-4">{authMode === 'login' ? 'Brand Login' : 'Brand Signup'}</h2>
+              {!showForgotPassword ? (
+                <>
+                  <form onSubmit={handleAuth} className="w-full flex flex-col gap-3">
+                    <input
+                      type="email"
+                      placeholder="Email"
+                      className="border p-2 rounded"
+                      value={authEmail}
+                      onChange={e => setAuthEmail(e.target.value)}
+                      required
+                    />
+                    <input
+                      type="password"
+                      placeholder="Password"
+                      className="border p-2 rounded"
+                      value={authPassword}
+                      onChange={e => setAuthPassword(e.target.value)}
+                      required
+                    />
+                    {authError && <div className="text-red-500 text-sm">{authError}</div>}
+                    <button
+                      type="submit"
+                      className="bg-[var(--gold)] text-white rounded px-4 py-2 font-semibold"
+                    >
+                      {authMode === 'login' ? 'Login' : 'Sign Up'}
+                    </button>
+                    {authMode === 'login' && (
+                      <button
+                        type="button"
+                        className="mt-2 text-sm text-[var(--gold)] underline hover:text-black transition"
+                        onClick={() => setShowForgotPassword(true)}
+                      >
+                        Forgot password?
+                      </button>
+                    )}
+                  </form>
+                  <div className="flex flex-col gap-2 mt-6 w-full">
                     <button
                       type="button"
-                      className="mt-2 text-sm text-[var(--gold)] underline hover:text-black transition"
-                      onClick={() => setShowForgotPassword(true)}
+                      className="w-full py-2 rounded-full border border-[var(--gold)] bg-white text-[var(--gold)] text-sm font-medium transition hover:bg-[var(--gold)] hover:text-white focus:outline-none"
+                      onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}
                     >
-                      Forgot password?
+                      {authMode === 'login' ? 'No account? Sign up' : 'Already have an account? Login'}
                     </button>
-                  )}
-                </form>
-                <div className="flex flex-col gap-2 mt-6 w-full">
-                  <button
-                    type="button"
-                    className="w-full py-2 rounded-full border border-[var(--gold)] bg-white text-[var(--gold)] text-sm font-medium transition hover:bg-[var(--gold)] hover:text-white focus:outline-none"
-                    onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}
-                  >
-                    {authMode === 'login' ? 'No account? Sign up' : 'Already have an account? Login'}
-                  </button>
-                  <button
-                    type="button"
-                    className="w-full py-2 rounded-full border border-gray-200 bg-gray-100 text-gray-500 text-sm font-medium transition hover:bg-gray-200 focus:outline-none"
-                    onClick={() => setShowBrandForm(false)}
-                  >
-                    Close
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <form onSubmit={handleForgotPassword} className="w-full flex flex-col gap-3">
-                  <input type="email" placeholder="Email for reset link" className="border p-2 rounded" value={forgotPasswordEmail} onChange={e => setForgotPasswordEmail(e.target.value)} required />
-                  <button type="submit" className="bg-[var(--gold)] text-white rounded px-4 py-2 font-semibold">Send reset link</button>
-                </form>
-                {forgotPasswordMessage && <div className="mt-2 text-green-600 text-sm">{forgotPasswordMessage}</div>}
-                <button className="mt-4 text-sm text-gray-500 underline hover:text-gray-700" onClick={() => setShowForgotPassword(false)}>Back to login</button>
-              </>
-            )}
+                    <button
+                      type="button"
+                      className="w-full py-2 rounded-full border border-gray-200 bg-gray-100 text-gray-500 text-sm font-medium transition hover:bg-gray-200 focus:outline-none"
+                      onClick={() => setShowBrandForm(false)}
+                    >
+                      Close
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <form onSubmit={handleForgotPassword} className="w-full flex flex-col gap-3">
+                    <input type="email" placeholder="Email for reset link" className="border p-2 rounded" value={forgotPasswordEmail} onChange={e => setForgotPasswordEmail(e.target.value)} required />
+                    <button type="submit" className="bg-[var(--gold)] text-white rounded px-4 py-2 font-semibold">Send reset link</button>
+                  </form>
+                  {forgotPasswordMessage && <div className="mt-2 text-green-600 text-sm">{forgotPasswordMessage}</div>}
+                  <button className="mt-4 text-sm text-gray-500 underline hover:text-gray-700" onClick={() => setShowForgotPassword(false)}>Back to login</button>
+                </>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {user && (
-        <div className="mb-8 px-6 py-4 rounded-xl shadow-lg bg-white flex flex-col items-center border border-[#E5C76B] w-72" style={{boxShadow: '0 4px 24px 0 rgba(246,211,101,0.10)'}}>
-          <div className="flex items-center gap-2 mb-2">
-            <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#F6D365"/><text x="12" y="16" textAnchor="middle" fontSize="12" fill="#222" fontWeight="bold">@</text></svg>
-            <span className="font-medium text-gray-700">Logged in as</span>
+        {user && (
+          <div className="mb-8 px-6 py-4 rounded-xl shadow-lg bg-white flex flex-col items-center border border-[#E5C76B] w-72" style={{boxShadow: '0 4px 24px 0 rgba(246,211,101,0.10)'}}>
+            <div className="flex items-center gap-2 mb-2">
+              <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#F6D365"/><text x="12" y="16" textAnchor="middle" fontSize="12" fill="#222" fontWeight="bold">@</text></svg>
+              <span className="font-medium text-gray-700">Logged in as</span>
+            </div>
+            <div className="font-semibold text-lg text-black mb-3 break-all text-center">{user.email}</div>
+            <button
+              className="px-5 py-2 rounded-full bg-gray-200 text-gray-800 font-semibold shadow hover:bg-gray-300 transition"
+              onClick={handleLogout}
+            >
+              Logout
+            </button>
           </div>
-          <div className="font-semibold text-lg text-black mb-3 break-all text-center">{user.email}</div>
+        )}
+
+        <div className="mb-12 mt-0 pt-0 flex flex-col items-center w-full">
+          <div className="w-full h-px bg-[#cccccc] mb-11"></div>
           <button
-            className="px-5 py-2 rounded-full bg-gray-200 text-gray-800 font-semibold shadow hover:bg-gray-300 transition"
-            onClick={handleLogout}
+            className="px-8 py-3 rounded-full bg-white/90 text-[var(--gold)] border border-[var(--gold)] font-semibold text-xl shadow-lg hover:bg-[var(--gold)] hover:text-white transition-all duration-300 hover:shadow-xl mb-2"
+            style={{ minWidth: '180px', fontSize: '1.25rem' }}
+            onClick={openContactForm}
           >
-            Logout
+            Contact
           </button>
+          <div className="w-32 my-8 border-t" style={{ borderColor: "#cccccc" }}></div>
+          <Link
+            href="/about"
+            className="text-gray-500 hover:text-[var(--gold)] transition-colors duration-300 text-lg font-medium tracking-wide"
+            style={{ textAlign: 'center', marginBottom: '-3rem' }}
+          >
+            About Felix Tell
+          </Link>
         </div>
-      )}
-
-      <div className="mb-12 mt-0 pt-0 flex flex-col items-center w-full">
-        <div className="w-full h-px bg-[#cccccc] mb-11"></div>
-        <button
-          className="px-8 py-3 rounded-full bg-white/90 text-[var(--gold)] border border-[var(--gold)] font-semibold text-xl shadow-lg hover:bg-[var(--gold)] hover:text-white transition-all duration-300 hover:shadow-xl mb-2"
-          style={{ minWidth: '180px', fontSize: '1.25rem' }}
-          onClick={openContactForm}
-        >
-          Contact
-        </button>
-        <div className="w-32 my-8 border-t" style={{ borderColor: "#cccccc" }}></div>
-        <Link
-          href="/about"
-          className="text-gray-500 hover:text-[var(--gold)] transition-colors duration-300 text-lg font-medium tracking-wide"
-          style={{ textAlign: 'center', marginBottom: '-3rem' }}
-        >
-          About Felix Tell
-        </Link>
       </div>
-    </div>
+    </>
   );
 }
