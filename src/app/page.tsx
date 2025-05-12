@@ -485,10 +485,17 @@ export default function Home() {
             position: 'fixed', inset: 0, zIndex: 50, background: '#E8DCCE',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             transition: 'opacity 0.18s',
-            opacity: showSplash ? 1 : 0
+            opacity: showSplash ? 1 : 0,
+            contain: 'strict',
+            willChange: 'opacity'
           }}
         >
-          <svg width="320" height="180" viewBox="0 0 320 180" style={{ display: 'block' }}>
+          <svg width="320" height="180" viewBox="0 0 320 180" style={{ 
+            display: 'block',
+            willChange: 'transform',
+            transform: 'translateZ(0)',
+            backfaceVisibility: 'hidden'
+          }}>
             <defs>
               <linearGradient id="gold-gradient" x1="0" y1="0" x2="1" y2="1">
                 <stop offset="0%" stopColor="#F0C040" />
@@ -514,7 +521,10 @@ export default function Home() {
               style={{
                 strokeDasharray: 180,
                 strokeDashoffset: 180,
-                animation: shouldStartAnimation ? 'drawBodyLeft 1.1s cubic-bezier(.77,0,.18,1) forwards' : 'none'
+                animation: shouldStartAnimation ? 'drawBodyLeft 1.1s cubic-bezier(0, 0.8, 0.2, 1) forwards' : 'none',
+                willChange: 'stroke-dashoffset',
+                transform: 'translateZ(0)',
+                backfaceVisibility: 'hidden'
               }}
             />
             {/* Body rechts ab RECHTEM Rand des Suchers, läuft deutlich weiter nach links */}
@@ -536,7 +546,10 @@ export default function Home() {
               style={{
                 strokeDasharray: 280,
                 strokeDashoffset: 280,
-                animation: shouldStartAnimation ? 'drawBodyRight 1.1s cubic-bezier(.77,0,.18,1) forwards' : 'none'
+                animation: shouldStartAnimation ? 'drawBodyRight 1.1s cubic-bezier(0, 0.8, 0.2, 1) forwards' : 'none',
+                willChange: 'stroke-dashoffset',
+                transform: 'translateZ(0)',
+                backfaceVisibility: 'hidden'
               }}
             />
             {/* Sucher exakt zwischen Body-Segmenten */}
@@ -548,7 +561,10 @@ export default function Home() {
               style={{
                 strokeDasharray: 64,
                 strokeDashoffset: 64,
-                animation: shouldStartAnimation ? 'drawFinder 1.1s cubic-bezier(.77,0,.18,1) forwards' : 'none'
+                animation: shouldStartAnimation ? 'drawFinder 1.1s cubic-bezier(0, 0.8, 0.2, 1) forwards' : 'none',
+                willChange: 'stroke-dashoffset',
+                transform: 'translateZ(0)',
+                backfaceVisibility: 'hidden'
               }}
             />
             {/* Objektiv */}
@@ -564,7 +580,10 @@ export default function Home() {
               style={{
                 strokeDasharray: 163.36,
                 strokeDashoffset: 163.36,
-                animation: shouldStartAnimation ? 'drawLens 1.1s cubic-bezier(.77,0,.18,1) forwards' : 'none'
+                animation: shouldStartAnimation ? 'drawLens 1.1s cubic-bezier(0, 0.8, 0.2, 1) forwards' : 'none',
+                willChange: 'stroke-dashoffset',
+                transform: 'translateZ(0)',
+                backfaceVisibility: 'hidden'
               }}
             />
             {/* Blitz */}
@@ -607,7 +626,10 @@ export default function Home() {
               style={{
                 strokeDasharray: 20,
                 strokeDashoffset: 20,
-                animation: 'drawKnob 0.3s cubic-bezier(.77,0,.18,1) 1.1s forwards'
+                animation: 'drawKnob 0.3s cubic-bezier(0, 0.8, 0.2, 1) 1.1s forwards',
+                willChange: 'stroke-dashoffset',
+                transform: 'translateZ(0)',
+                backfaceVisibility: 'hidden'
               }}
             />
           </svg>
@@ -623,6 +645,9 @@ export default function Home() {
                 to { stroke-dashoffset: 0; }
               }
               @keyframes drawFinder {
+                to { stroke-dashoffset: 0; }
+              }
+              @keyframes drawKnob {
                 to { stroke-dashoffset: 0; }
               }
             `}

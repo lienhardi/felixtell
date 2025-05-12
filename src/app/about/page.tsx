@@ -61,14 +61,14 @@ export default function About() {
           </p>
 
           <p className="leading-relaxed text-xl">
-            <strong>For brands:</strong> Beautiful models, that's what catches the customer. We are surprised to see a lot of huge companies let unappealing models represent their brand and products. Let's get your brand <em>loved</em>.
+            <strong>For brands:</strong> Beautiful models: That's what catches the customer. We are surprised to see a lot of huge companies let unappealing models represent their brand and products. Let's get your brand <em>loved</em>.
           </p>
 
 
           <p className="leading-relaxed text-xl font-medium">
             Contact: <strong>family@felixtell.com</strong>
             <br /><br />
-            The Felix Tell Family
+            Felix Tell
           </p>
         </div>
       </div>
