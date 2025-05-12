@@ -404,7 +404,7 @@ export default function Home() {
         </div>
       </div>
       <div className="elegant-divider"></div>
-      <h2 className="text-4xl sm:text-5xl elegant-heading text-black mb-4 mt-3 text-center">
+      <h2 className="text-4xl sm:text-5xl elegant-heading text-black mb-2 mt-3 text-center">
         Authentic talent. Timeless values.
       </h2>
       <p
@@ -413,7 +413,7 @@ export default function Home() {
           color: "#3a2e1a",
           lineHeight: 1.6,
           maxWidth: 600,
-          margin: "0 auto 2.5rem auto",
+          margin: "0 auto 1.5rem auto",
           textAlign: "center",
           fontWeight: 500,
           letterSpacing: "0.01em"
@@ -423,7 +423,7 @@ export default function Home() {
       </p>
       
       {!user && (
-        <div className="w-full flex justify-center mb-10">
+        <div className="w-full flex justify-center mb-9">
           <button
             onClick={() => setShowBrandForm(true)}
             className="px-8 py-4 rounded-full bg-white/90 text-[var(--gold)] border border-[var(--gold)] font-semibold text-xl shadow-lg hover:bg-[var(--gold)] hover:text-white transition-all duration-300 hover:shadow-xl"
@@ -530,7 +530,7 @@ export default function Home() {
             <span className="text-gray-500 text-lg font-medium mx-4">or</span>
             <div className="w-24 h-px" style={{ background: "#cccccc" }}></div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-6 mb-10">
+          <div className="flex flex-col sm:flex-row gap-6 mb-28 mt-3">
             <button
               className="px-10 py-4 bg-[var(--gold)] text-white rounded-full text-xl font-semibold shadow-lg hover:bg-[var(--gold-light)] hover:text-[var(--gold)] transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5"
               onClick={openBecomeModelForm}
@@ -704,7 +704,7 @@ export default function Home() {
 
       <div className="mb-12 mt-0 pt-0 flex flex-col items-center w-full">
         <button
-          className="px-8 py-3 rounded-full bg-white/90 text-[var(--gold)] border border-[var(--gold)] font-semibold text-xl shadow-lg hover:bg-[var(--gold)] hover:text-white transition-all duration-300 hover:shadow-xl mb-4"
+          className="px-8 py-3 rounded-full bg-white/90 text-[var(--gold)] border border-[var(--gold)] font-semibold text-xl shadow-lg hover:bg-[var(--gold)] hover:text-white transition-all duration-300 hover:shadow-xl mb-2"
           style={{ minWidth: '180px', fontSize: '1.25rem' }}
           onClick={openContactForm}
         >
