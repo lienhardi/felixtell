@@ -14,7 +14,7 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: "Felix Tell | Model Agency",
+  title: "Felix Tell | Artists' Bureau",
   description: "Professional model agency for talents and brands.",
 };
 
@@ -27,7 +27,7 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet" />
-        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <link rel="icon" href="/Felix_Tell_logo.png" />
       </head>
       <body className={`${inter.variable} ${cormorant.variable} antialiased`}>
         {children}

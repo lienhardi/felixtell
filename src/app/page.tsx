@@ -594,7 +594,7 @@ export default function Home() {
         </div>
         <div className="elegant-divider"></div>
         <h2 className="text-4xl sm:text-5xl elegant-heading text-black mb-2 mt-8 text-center">
-          Authentic talent. Timeless values.
+        Shine. Profit.
         </h2>
         <p
           className="text-2xl sm:text-3xl"
@@ -608,7 +608,7 @@ export default function Home() {
             letterSpacing: "0.01em"
           }}
         >
-          Discover your match.
+          Win-Win.
         </p>
         
         {!user && (

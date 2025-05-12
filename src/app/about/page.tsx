@@ -30,49 +30,44 @@ const sendEmail = async (to: string, subject: string, body: string) => {
 
 export default function About() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-8 bg-gradient-to-b from-white to-gray-50">
+    <div className="flex flex-col items-center justify-center min-h-screen p-8"
+         style={{
+           background: `
+             repeating-linear-gradient(
+               135deg,
+               #E8DCCE,
+               #E8DCCE 36px,
+               #F0C040 36px,
+               #F0C040 38px,
+               #F3EBDD 38px,
+               #F3EBDD 76px
+             )
+           `
+         }}>
       <div className="max-w-3xl w-full elegant-card mb-8">
         <h1 className="text-4xl elegant-heading text-black mb-8 text-center">About Felix Tell</h1>
         
-        <div className="space-y-8 text-gray-700">
-          <p className="leading-relaxed text-lg">
-            Established in 1842 by the visionary Felix Tell, our agency has stood as a beacon of artistic excellence and human potential for over 180 years. What began as a small atelier in the heart of Europe has evolved into a sanctuary for emerging talent, while maintaining the timeless values of our founder.
+        <div className="space-y-6 text-gray-700">
+          <p className="leading-relaxed text-xl">
+            Founded in 1842 as a small European atelier, Felix Tell has supported creative expression and business growth for over 180 years.
           </p>
 
-          <p className="leading-relaxed text-lg">
-            Felix Tell believed that true beauty lies not in perfection, but in authenticity. In an era where artistic expression was often confined to the privileged few, he opened his doors to those with raw talent and genuine passion. This revolutionary approach, which once challenged the conventions of his time, remains at the core of our philosophy today.
+          <p className="leading-relaxed text-xl">
+            <strong>For new talents:</strong> If your new to real modelling, then this is your strength. Find here a safe and dignified way to start your modelling career.
           </p>
 
-          <p className="leading-relaxed text-lg">
-            In our modern age, we continue Felix Tell's legacy by embracing technology while preserving the human touch. We understand that the journey of a new talent begins in the comfort of their home, with a simple photograph that captures their essence. This intimate beginning is not a limitation, but rather a testament to the authentic nature of true potential.
+          <p className="leading-relaxed text-xl">
+          <strong>For modelling experts:</strong> Gain access to more brands and projects here.
           </p>
 
-          <p className="leading-relaxed text-lg">
-            To our cherished talents:
-            <br />
-            Your journey begins with a single step - a photograph taken in your own space, where you feel most comfortable. We believe that this authenticity is your greatest strength. Our role is to nurture this raw potential, to guide you through the early stages of your career, and to ensure that your introduction to the world of modeling is both safe and dignified.
+          <p className="leading-relaxed text-xl">
+            <strong>For brands:</strong> Beautiful models, that's what catches the customer. We are surprised to see a lot of huge companies let unappealing models represent their brand and products. Let's get your brand <em>loved</em>.
           </p>
 
-          <p className="leading-relaxed text-lg">
-            To our valued brands:
-            <br />
-            In a world of polished perfection, we offer something different - the genuine spark of emerging talent. Our models are not just faces; they are individuals with unique stories, ready to bring authenticity to your brand. We carefully curate these connections, ensuring that each match represents not just a business opportunity, but a meaningful partnership.
-          </p>
 
-          <p className="leading-relaxed text-lg">
-            The digital age has transformed how we discover talent, but our commitment to excellence remains unchanged. We bridge the gap between tradition and innovation, between established prestige and emerging potential. Every new face that joins us becomes part of our legacy, continuing the story that Felix Tell began nearly two centuries ago.
-          </p>
-
-          <p className="leading-relaxed text-lg">
-            Join us in this journey of discovery and growth. Whether you're taking your first steps in modeling or seeking authentic talent for your brand, we invite you to be part of our continuing story.
-          </p>
-
-          <p className="leading-relaxed text-lg">
-            Contact us at family@felixtell.com
-            <br />
-            <br />
-            With timeless dedication,
-            <br />
+          <p className="leading-relaxed text-xl font-medium">
+            Contact: <strong>family@felixtell.com</strong>
+            <br /><br />
             The Felix Tell Family
           </p>
         </div>
@@ -80,7 +75,7 @@ export default function About() {
 
       <Link
         href="/"
-        className="elegant-button"
+        className="px-8 py-3 rounded-full bg-white/90 text-[var(--gold)] border border-[var(--gold)] font-semibold text-xl shadow-lg hover:bg-[var(--gold)] hover:text-white transition-all duration-300 hover:shadow-xl mb-2"
         onClick={() => {
           if (typeof window !== "undefined") {
             sessionStorage.setItem("fromAbout", "1");
