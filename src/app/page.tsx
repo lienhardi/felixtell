@@ -526,9 +526,9 @@ export default function Home() {
       {!user && (
         <>
           <div className="flex items-center w-full justify-center mb-4">
-            <div className="w-24 h-px bg-gray-300"></div>
+            <div className="w-24 h-px" style={{ background: "#cccccc" }}></div>
             <span className="text-gray-500 text-lg font-medium mx-4">or</span>
-            <div className="w-24 h-px bg-gray-300"></div>
+            <div className="w-24 h-px" style={{ background: "#cccccc" }}></div>
           </div>
           <div className="flex flex-col sm:flex-row gap-6 mb-10">
             <button
@@ -710,7 +710,7 @@ export default function Home() {
         >
           Contact
         </button>
-        <div className="w-32 my-8 border-t border-gray-300"></div>
+        <div className="w-32 my-8 border-t" style={{ borderColor: "#cccccc" }}></div>
         <Link
           href="/about"
           className="text-gray-500 hover:text-[var(--gold)] transition-colors duration-300 text-lg font-medium tracking-wide"
