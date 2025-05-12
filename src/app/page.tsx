@@ -49,21 +49,13 @@ export default function Home() {
 
   // Warte auf vollständiges Laden der Seite
   useEffect(() => {
-    if (document.readyState === 'complete') {
-      // Wenn die Seite bereits vollständig geladen ist
+    if (document.readyState === 'interactive' || document.readyState === 'complete') {
       setIsPageLoaded(true);
-      // Verzögere den Start der Animation um 100ms
-      setTimeout(() => {
-        setShouldStartAnimation(true);
-      }, 100);
+      setShouldStartAnimation(true);
     } else {
-      // Warte auf vollständiges Laden
       const handleLoad = () => {
         setIsPageLoaded(true);
-        // Verzögere den Start der Animation um 100ms
-        setTimeout(() => {
-          setShouldStartAnimation(true);
-        }, 100);
+        setShouldStartAnimation(true);
       };
       window.addEventListener('load', handleLoad);
       return () => window.removeEventListener('load', handleLoad);
