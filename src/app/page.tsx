@@ -23,6 +23,7 @@ export default function Home() {
   const [forgotPasswordMessage, setForgotPasswordMessage] = useState('');
   const [showSplash, setShowSplash] = useState(true);
   const [hasLoadedLogo, setHasLoadedLogo] = useState(false);
+  const [isPageLoaded, setIsPageLoaded] = useState(false);
 
   // Models-Array mit 100 Platzhaltern
   const allModels = Array.from({ length: 100 }, (_, i) => ({ name: `Model ${i + 1}`, img: null }));
@@ -40,6 +41,35 @@ export default function Home() {
   const [pendingModelRemove, setPendingModelRemove] = useState<null | number>(null);
   const [readyToRemove, setReadyToRemove] = useState(false);
   const [removing, setRemoving] = useState(false);
+
+  // Warte auf vollständiges Laden der Seite
+  useEffect(() => {
+    if (document.readyState === 'complete') {
+      setIsPageLoaded(true);
+    } else {
+      window.addEventListener('load', () => setIsPageLoaded(true));
+      return () => window.removeEventListener('load', () => setIsPageLoaded(true));
+    }
+  }, []);
+
+  // Splash-Logik: Nur dieser eine useEffect
+  useEffect(() => {
+    if (!isPageLoaded) return; // Warte auf vollständiges Laden
+
+    // Prüfe sessionStorage-Flag ODER Referrer
+    const fromAbout = typeof window !== "undefined" && sessionStorage.getItem("fromAbout") === "1";
+    const isFromAbout = document.referrer.includes('/about') || fromAbout;
+
+    if (isFromAbout) {
+      setShowSplash(false);
+      if (fromAbout) sessionStorage.removeItem("fromAbout");
+    } else {
+      const timeout = setTimeout(() => {
+        setShowSplash(false);
+      }, 2100);
+      return () => clearTimeout(timeout);
+    }
+  }, [isPageLoaded]);
 
   // Vereinfachte Swipe-Logik: immer nur das erste Model anzeigen
   const handleRemoveModel = () => {
@@ -375,23 +405,6 @@ export default function Home() {
       setForgotPasswordMessage('If the email exists, a reset link has been sent.');
     }
   };
-
-  // Splash-Logik: Nur dieser eine useEffect
-  useEffect(() => {
-    // Prüfe sessionStorage-Flag ODER Referrer
-    const fromAbout = typeof window !== "undefined" && sessionStorage.getItem("fromAbout") === "1";
-    const isFromAbout = document.referrer.includes('/about') || fromAbout;
-
-    if (isFromAbout) {
-      setShowSplash(false);
-      if (fromAbout) sessionStorage.removeItem("fromAbout");
-    } else {
-      const timeout = setTimeout(() => {
-        setShowSplash(false);
-      }, 2100);
-      return () => clearTimeout(timeout);
-    }
-  }, []);
 
   return (
     <>
