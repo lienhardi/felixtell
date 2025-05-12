@@ -75,7 +75,7 @@ export default function Home() {
     } else {
       const timeout = setTimeout(() => {
         setShowSplash(false);
-      }, 1800);
+      }, 1500);
       return () => clearTimeout(timeout);
     }
   }, [isPageLoaded]);
@@ -485,17 +485,10 @@ export default function Home() {
             position: 'fixed', inset: 0, zIndex: 50, background: '#E8DCCE',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             transition: 'opacity 0.18s',
-            opacity: showSplash ? 1 : 0,
-            contain: 'strict',
-            willChange: 'opacity'
+            opacity: showSplash ? 1 : 0
           }}
         >
-          <svg width="320" height="180" viewBox="0 0 320 180" style={{ 
-            display: 'block',
-            willChange: 'transform',
-            transform: 'translateZ(0)',
-            backfaceVisibility: 'hidden'
-          }}>
+          <svg width="320" height="180" viewBox="0 0 320 180" style={{ display: 'block' }}>
             <defs>
               <linearGradient id="gold-gradient" x1="0" y1="0" x2="1" y2="1">
                 <stop offset="0%" stopColor="#F0C040" />
@@ -521,10 +514,7 @@ export default function Home() {
               style={{
                 strokeDasharray: 180,
                 strokeDashoffset: 180,
-                animation: shouldStartAnimation ? 'drawBodyLeft 1.1s cubic-bezier(0, 0.8, 0.2, 1) forwards' : 'none',
-                willChange: 'stroke-dashoffset',
-                transform: 'translateZ(0)',
-                backfaceVisibility: 'hidden'
+                animation: shouldStartAnimation ? 'drawBodyLeft 0.8s linear forwards' : 'none'
               }}
             />
             {/* Body rechts ab RECHTEM Rand des Suchers, läuft deutlich weiter nach links */}
@@ -546,10 +536,7 @@ export default function Home() {
               style={{
                 strokeDasharray: 280,
                 strokeDashoffset: 280,
-                animation: shouldStartAnimation ? 'drawBodyRight 1.1s cubic-bezier(0, 0.8, 0.2, 1) forwards' : 'none',
-                willChange: 'stroke-dashoffset',
-                transform: 'translateZ(0)',
-                backfaceVisibility: 'hidden'
+                animation: shouldStartAnimation ? 'drawBodyRight 0.8s linear forwards' : 'none'
               }}
             />
             {/* Sucher exakt zwischen Body-Segmenten */}
@@ -561,10 +548,7 @@ export default function Home() {
               style={{
                 strokeDasharray: 64,
                 strokeDashoffset: 64,
-                animation: shouldStartAnimation ? 'drawFinder 1.1s cubic-bezier(0, 0.8, 0.2, 1) forwards' : 'none',
-                willChange: 'stroke-dashoffset',
-                transform: 'translateZ(0)',
-                backfaceVisibility: 'hidden'
+                animation: shouldStartAnimation ? 'drawFinder 0.8s linear forwards' : 'none'
               }}
             />
             {/* Objektiv */}
@@ -580,10 +564,7 @@ export default function Home() {
               style={{
                 strokeDasharray: 163.36,
                 strokeDashoffset: 163.36,
-                animation: shouldStartAnimation ? 'drawLens 1.1s cubic-bezier(0, 0.8, 0.2, 1) forwards' : 'none',
-                willChange: 'stroke-dashoffset',
-                transform: 'translateZ(0)',
-                backfaceVisibility: 'hidden'
+                animation: shouldStartAnimation ? 'drawLens 0.8s linear forwards' : 'none'
               }}
             />
             {/* Blitz */}
@@ -597,7 +578,7 @@ export default function Home() {
                 from="0"
                 to="1"
                 dur="0.08s"
-                begin="1.2s"
+                begin="0.9s"
                 fill="freeze"
               />
               <animate
@@ -605,7 +586,7 @@ export default function Home() {
                 from="1"
                 to="0"
                 dur="0.25s"
-                begin="1.28s"
+                begin="0.98s"
                 fill="freeze"
               />
               <animate
@@ -613,7 +594,7 @@ export default function Home() {
                 from="9"
                 to="18"
                 dur="0.25s"
-                begin="1.28s"
+                begin="0.98s"
                 fill="freeze"
               />
             </circle>
@@ -626,10 +607,7 @@ export default function Home() {
               style={{
                 strokeDasharray: 20,
                 strokeDashoffset: 20,
-                animation: 'drawKnob 0.3s cubic-bezier(0, 0.8, 0.2, 1) 1.1s forwards',
-                willChange: 'stroke-dashoffset',
-                transform: 'translateZ(0)',
-                backfaceVisibility: 'hidden'
+                animation: 'drawKnob 0.3s linear 0.8s forwards'
               }}
             />
           </svg>
