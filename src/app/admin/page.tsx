@@ -43,18 +43,10 @@ export default function AdminPage() {
         <head>
           <style>
             body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .signature { margin-top: 30px; color: #666; }
-            .logo { color: #6B5E2C; font-weight: bold; }
           </style>
         </head>
         <body>
           ${paragraphs.map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('')}
-          
-          <div class="signature">
-            <p>Mit freundlichen Grüßen,<br>
-            <span class="logo">Felix Tell</span><br>
-            Wealth Management</p>
-          </div>
         </body>
         </html>
       `;

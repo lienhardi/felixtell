@@ -127,9 +127,9 @@ export default function Home() {
             </defs>
             
             {/* Elegantes Schild/Wappen */}
-            <path 
+            <path
               d="M160,30 L200,50 A80,80 0 0 1 160,150 A80,80 0 0 1 120,50 Z" 
-              stroke="url(#gold-gradient)" 
+              stroke="url(#gold-gradient)"
               strokeWidth="2" 
               fill="none"
               style={{
@@ -152,12 +152,12 @@ export default function Home() {
                   animation: shouldStartAnimation ? 'drawLine 0.6s ease-in-out 0.6s forwards' : 'none'
                 }}
               />
-              <path 
+            <path
                 d="M120,90 L200,90" 
-                stroke="url(#gold-gradient)" 
+              stroke="url(#gold-gradient)"
                 strokeWidth="1.5" 
                 opacity="0.7"
-                style={{
+              style={{
                   strokeDasharray: 80,
                   strokeDashoffset: 80,
                   animation: shouldStartAnimation ? 'drawLine 0.6s ease-in-out 0.7s forwards' : 'none'
@@ -165,7 +165,7 @@ export default function Home() {
               />
               <path 
                 d="M130,115 L190,115" 
-                stroke="url(#gold-gradient)" 
+              stroke="url(#gold-gradient)"
                 strokeWidth="1.5" 
                 opacity="0.7"
                 style={{
@@ -181,7 +181,7 @@ export default function Home() {
               cx="160" 
               cy="75" 
               r="15" 
-              fill="none" 
+              fill="none"
               stroke="url(#gold-gradient)" 
               strokeWidth="1"
               style={{
@@ -190,9 +190,9 @@ export default function Home() {
                 animation: shouldStartAnimation ? 'drawCircle 0.8s ease-in-out 0.9s forwards' : 'none'
               }}
             />
-            <path 
+            <path
               d="M160,60 L160,90 M145,75 L175,75" 
-              stroke="url(#gold-gradient)" 
+              stroke="url(#gold-gradient)"
               strokeWidth="1"
               style={{
                 strokeDasharray: 60,
@@ -273,17 +273,17 @@ export default function Home() {
             referred to us, we invite you to consider yourself part of the family.
           </p>
         </div>
-        
+
         <div className="w-20 h-px bg-gray-300 my-8"></div>
         
         <div className="flex flex-col gap-6 items-center">
-          <button
+              <button
             className="px-8 py-3 bg-white text-gray-800 border border-gray-400 hover:bg-gray-100 transition-colors text-lg"
             onClick={openContactForm}
-          >
+              >
             Contact Us
-          </button>
-        </div>
+              </button>
+            </div>
 
         {showContactForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -294,7 +294,7 @@ export default function Home() {
                   <div className="text-green-600 text-3xl mb-2">✓</div>
                   <p className="text-lg font-medium text-gray-800 mb-2">Message sent successfully</p>
                   <p className="text-gray-600">We will respond promptly.</p>
-                </div>
+                  </div>
               ) : (
                 <form onSubmit={handleContactSubmit}>
                   <p className="mb-2 text-gray-700">Please enter your email address:</p>
@@ -325,7 +325,7 @@ export default function Home() {
             </div>
           </div>
         )}
-        
+
         <div className="mt-16 pt-8 border-t border-gray-300 w-full max-w-2xl text-center">
           <p className="text-sm text-gray-500">
             © 2025 Felix Tell Wealth Management
@@ -334,7 +334,7 @@ export default function Home() {
             Established 1837
           </p>
         </div>
-      </div>
+    </div>
     </>
   );
 }
