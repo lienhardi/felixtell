@@ -257,20 +257,21 @@ export default function Home() {
         <div className="w-20 h-px bg-gray-300 my-8"></div>
         
         <h2 className="text-3xl sm:text-4xl font-serif text-gray-800 mb-6 text-center tracking-wide">
-          Tradition. Excellence. Trust.
+          Excellence and Efficiency
         </h2>
         
         <div className="max-w-2xl text-center px-4 mb-12">
           <p className="text-lg text-gray-700 leading-relaxed mb-6">
-            For nearly two centuries, Felix Tell has cultivated relationships based on 
-            discretion and mutual respect. Our long-standing heritage combines timeless 
-            principles with a contemporary perspective.
+            For nearly two centuries, Felix Tell has delivered consistent, superior investment results 
+            while preserving and growing wealth across generations. Our approach combines time-tested 
+            strategies with forward-looking market insights.
           </p>
           
           <p className="text-lg text-gray-700 leading-relaxed">
-            We operate with unwavering dedication to confidentiality and excellence.
+            We operate with unwavering dedication to performance and innovation.
             Our reputation is built on the trust of generations of discerning clients
-            seeking stability in an ever-changing world.
+            seeking stability in an ever-changing world. As you have likely been 
+            referred to us, we invite you to consider yourself part of the family.
           </p>
         </div>
         
@@ -293,7 +294,7 @@ export default function Home() {
                 <div className="text-center py-8">
                   <div className="text-green-600 text-3xl mb-2">✓</div>
                   <p className="text-lg font-medium text-gray-800 mb-2">Message sent successfully</p>
-                  <p className="text-gray-600">We will respond with the utmost discretion.</p>
+                  <p className="text-gray-600">We will respond promptly.</p>
                 </div>
               ) : (
                 <form onSubmit={handleContactSubmit}>
@@ -331,7 +332,7 @@ export default function Home() {
             Felix Tell © 1842-{new Date().getFullYear()}
           </p>
           <p className="text-xs text-gray-400 mt-2">
-            Private. Discreet. Exclusive.
+            Felix Tell Wealth Management
           </p>
         </div>
       </div>
