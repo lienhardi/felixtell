@@ -1,37 +1,27 @@
-import type { Metadata } from "next";
-import { Inter, Cormorant_Garamond } from "next/font/google";
-import "./globals.css";
+import './globals.css'
+import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter"
-});
-
-const cormorant = Cormorant_Garamond({
-  subsets: ["latin"],
-  variable: "--font-cormorant",
-  weight: ["300", "400", "500", "600", "700"]
-});
+const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: "Felix Tell Artists' Bureau",
-  description: "Professional model agency for talents and brands.",
-};
+  title: 'Felix Tell | Est. 1842',
+  description: 'A heritage of excellence and discretion since 1842.',
+}
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: React.ReactNode
+}) {
   return (
     <html lang="en">
       <head>
-        <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet" />
-        <link rel="icon" href="/Felix_Tell_logo.png" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
       </head>
-      <body className={`${inter.variable} ${cormorant.variable} antialiased`}>
+      <body className={inter.className}>
         {children}
       </body>
     </html>
-  );
+  )
 }

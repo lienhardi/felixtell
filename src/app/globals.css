@@ -2,14 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Neue CSS-Variablen für goldene Akzente */
+/* Neue CSS-Variablen für Hedgefonds-Design */
 :root {
-  --gold: #F0C040;
-  --gold-light: #F7E7B0;
-  --background: #ffffff;
-  --foreground: #171717;
-  --elegant-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-  --gold-shadow: 0 4px 24px rgba(240, 192, 64, 0.15);
+  --gold: #8E7D3A;
+  --gold-light: #D5C584;
+  --background: #F5F5F5;
+  --foreground: #333333;
 }
 
 @theme inline {
@@ -21,6 +19,9 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
     --background: #0a0a0a;
     --foreground: #ededed;
   }
@@ -72,7 +73,7 @@ body {
 /* Elegante Überschriften */
 .elegant-heading {
   font-family: 'Playfair Display', serif;
-  letter-spacing: 0.02em;
+  font-weight: 500;
 }
 
 /* Elegante Trennlinien */
@@ -83,10 +84,16 @@ body {
 }
 
 @keyframes fadein {
-  from { opacity: 0; transform: translateY(-24px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .animate-fadein {
   animation: fadein 1.2s cubic-bezier(0.4,0,0.2,1) both;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
 }
