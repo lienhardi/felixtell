@@ -262,9 +262,8 @@ export default function Home() {
         
         <div className="max-w-2xl text-center px-4 mb-12">
           <p className="text-lg text-gray-700 leading-relaxed mb-6">
-            For nearly two centuries, Felix Tell has delivered consistent, superior investment results 
-            while preserving and growing wealth across generations. Our approach combines time-tested 
-            strategies with forward-looking market insights.
+            For nearly two centuries, Felix Tell has delivered consistent, superior investment results. 
+            Our approach combines time-tested strategies with forward-looking market insights.
           </p>
           
           <p className="text-lg text-gray-700 leading-relaxed">
