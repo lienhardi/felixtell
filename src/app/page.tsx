@@ -121,30 +121,117 @@ export default function Home() {
                 <stop offset="50%" stopColor="#6B5E2C" />
                 <stop offset="100%" stopColor="#4D4420" />
               </linearGradient>
+              <clipPath id="shield-clip">
+                <path d="M160,30 L200,50 A80,80 0 0 1 160,150 A80,80 0 0 1 120,50 Z" />
+              </clipPath>
             </defs>
-            {/* Logo für Vermögensverwaltung - einfaches FT Monogramm */}
-            <path
-              d="
-                M110,50 H190
-                M110,50 V130
-                M110,90 H170
-                M150,50 V130
-              "
-              stroke="url(#gold-gradient)"
-              strokeWidth="3.5"
+            
+            {/* Elegantes Schild/Wappen */}
+            <path 
+              d="M160,30 L200,50 A80,80 0 0 1 160,150 A80,80 0 0 1 120,50 Z" 
+              stroke="url(#gold-gradient)" 
+              strokeWidth="2" 
               fill="none"
-              strokeLinecap="round"
               style={{
-                strokeDasharray: 500,
-                strokeDashoffset: 500,
-                animation: shouldStartAnimation ? 'drawLogo 1.2s ease-in-out forwards' : 'none'
+                strokeDasharray: 400,
+                strokeDashoffset: 400,
+                animation: shouldStartAnimation ? 'drawOutline 1.2s ease-in-out forwards' : 'none'
               }}
             />
+            
+            {/* Horizontale Linien im Inneren */}
+            <g clipPath="url(#shield-clip)">
+              <path 
+                d="M120,65 L200,65" 
+                stroke="url(#gold-gradient)" 
+                strokeWidth="1.5" 
+                opacity="0.7"
+                style={{
+                  strokeDasharray: 80,
+                  strokeDashoffset: 80,
+                  animation: shouldStartAnimation ? 'drawLine 0.6s ease-in-out 0.6s forwards' : 'none'
+                }}
+              />
+              <path 
+                d="M120,90 L200,90" 
+                stroke="url(#gold-gradient)" 
+                strokeWidth="1.5" 
+                opacity="0.7"
+                style={{
+                  strokeDasharray: 80,
+                  strokeDashoffset: 80,
+                  animation: shouldStartAnimation ? 'drawLine 0.6s ease-in-out 0.7s forwards' : 'none'
+                }}
+              />
+              <path 
+                d="M130,115 L190,115" 
+                stroke="url(#gold-gradient)" 
+                strokeWidth="1.5" 
+                opacity="0.7"
+                style={{
+                  strokeDasharray: 60,
+                  strokeDashoffset: 60,
+                  animation: shouldStartAnimation ? 'drawLine 0.6s ease-in-out 0.8s forwards' : 'none'
+                }}
+              />
+            </g>
+            
+            {/* Subtile Stern/Kompass-Form in der Mitte */}
+            <circle 
+              cx="160" 
+              cy="75" 
+              r="15" 
+              fill="none" 
+              stroke="url(#gold-gradient)" 
+              strokeWidth="1"
+              style={{
+                strokeDasharray: 94,
+                strokeDashoffset: 94,
+                animation: shouldStartAnimation ? 'drawCircle 0.8s ease-in-out 0.9s forwards' : 'none'
+              }}
+            />
+            <path 
+              d="M160,60 L160,90 M145,75 L175,75" 
+              stroke="url(#gold-gradient)" 
+              strokeWidth="1"
+              style={{
+                strokeDasharray: 60,
+                strokeDashoffset: 60,
+                animation: shouldStartAnimation ? 'drawCross 0.6s ease-in-out 1.1s forwards' : 'none'
+              }}
+            />
+            
+            {/* FT Initialen, subtil und dezent */}
+            <text 
+              x="152" 
+              y="80" 
+              fontFamily="serif" 
+              fontSize="16" 
+              fill="url(#gold-gradient)"
+              opacity="0"
+              style={{
+                animation: shouldStartAnimation ? 'fadeIn 0.5s ease-in-out 1.3s forwards' : 'none'
+              }}
+            >
+              FT
+            </text>
           </svg>
           <style>
             {`
-              @keyframes drawLogo {
+              @keyframes drawOutline {
                 to { stroke-dashoffset: 0; }
+              }
+              @keyframes drawLine {
+                to { stroke-dashoffset: 0; }
+              }
+              @keyframes drawCircle {
+                to { stroke-dashoffset: 0; }
+              }
+              @keyframes drawCross {
+                to { stroke-dashoffset: 0; }
+              }
+              @keyframes fadeIn {
+                to { opacity: 1; }
               }
             `}
           </style>
