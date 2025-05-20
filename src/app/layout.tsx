@@ -5,8 +5,8 @@ import { Inter } from 'next/font/google'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Felix Tell | Est. 1842',
-  description: 'A heritage of excellence and discretion since 1842.',
+  title: 'Felix Tell Wealth Management',
+  description: 'A heritage of excellence and discretion since 1837.',
 }
 
 export default function RootLayout({
@@ -17,7 +17,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" sizes="any" />
       </head>
       <body className={inter.className}>
         {children}

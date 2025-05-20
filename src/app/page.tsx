@@ -249,7 +249,7 @@ export default function Home() {
           <div className="w-full flex justify-center" style={{ minHeight: 120 }}>
             <div className="flex flex-col items-center">
               <h1 className="text-4xl font-serif tracking-wider mb-2">FELIX TELL</h1>
-              <p className="text-sm uppercase tracking-widest text-gray-600">EST. 1842</p>
+              <p className="text-sm uppercase tracking-widest text-gray-600">WEALTH MANAGEMENT</p>
             </div>
           </div>
         </div>
@@ -328,10 +328,10 @@ export default function Home() {
         
         <div className="mt-16 pt-8 border-t border-gray-300 w-full max-w-2xl text-center">
           <p className="text-sm text-gray-500">
-            Felix Tell © 1842-{new Date().getFullYear()}
+            © 2025 Felix Tell Wealth Management
           </p>
           <p className="text-xs text-gray-400 mt-2">
-            Felix Tell Wealth Management
+            Established 1837
           </p>
         </div>
       </div>

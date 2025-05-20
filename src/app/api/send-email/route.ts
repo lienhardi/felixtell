@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     console.log('Received email request:', { to, subject, body, from });
 
     const { data, error } = await resend.emails.send({
-      from: 'Felixtell <onboarding@resend.dev>',
+      from: 'Felix Tell <info@felixtell.com>',
       to: process.env.EMAIL_RECEIVE!,
       subject: subject,
       text: `From: ${from}\n\n${body}`,
