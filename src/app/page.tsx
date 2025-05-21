@@ -19,6 +19,7 @@ export default function Home() {
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [authError, setAuthError] = useState('');
+  const [authSuccess, setAuthSuccess] = useState('');
   const [user, setUser] = useState<User | null>(null);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
@@ -29,6 +30,11 @@ export default function Home() {
   const [shouldStartAnimation, setShouldStartAnimation] = useState(false);
   const [showRejectedModels, setShowRejectedModels] = useState(false);
   const [rejectedModels, setRejectedModels] = useState<{name: string, id?: string}[]>([]);
+  const [isProcessingSwipe, setIsProcessingSwipe] = useState(false);
+  const processingSwipeRef = useRef(false);
+  const swipeLockRef = useRef(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [fileUploadStatus, setFileUploadStatus] = useState('');
 
   // Models-Array mit 100 Platzhaltern
   const allModels = Array.from({ length: 100 }, (_, i) => ({ name: `Model ${i + 1}`, img: null }));
@@ -94,65 +100,242 @@ export default function Home() {
     setDragX(0);
   };
 
-  // handleTouchEnd muss angepasst werden:
+  // Centralize swipe recording to prevent duplicates
+  const recordSwipe = async (modelName: string, direction: string) => {
+    // If already processing a swipe, don't allow another
+    if (processingSwipeRef.current) {
+      console.log('Preventing duplicate swipe processing');
+      return;
+    }
+
+    // Mark as processing using both state and ref
+    setIsProcessingSwipe(true);
+    processingSwipeRef.current = true;
+
+    try {
+      if (!user) {
+        // Store pending swipe for after login
+        const pendingSwipe = { model_name: modelName, direction };
+        localStorage.setItem('pendingSwipe', JSON.stringify(pendingSwipe));
+        setAuthMode('login');
+        setAuthSuccess('');
+        setAuthError('');
+        setShowBrandForm(true);
+        
+        // Don't remove model when not logged in - we'll handle this after login
+        // Just update UI state to prevent additional swipes on this model
+        setDragX(0);
+        setSwipeDirection(null);
+      } else {
+        // First check if this swipe already exists to avoid duplicates
+        const { data: existingSwipes } = await supabase
+          .from('swipes')
+          .select('id')
+          .eq('brand_id', user.id)
+          .eq('model_name', modelName)
+          .eq('direction', direction);
+
+        // Only insert if no matching swipe exists
+        if (!existingSwipes || existingSwipes.length === 0) {
+          const { error } = await supabase
+            .from('swipes')
+            .insert({
+              brand_id: user.id,
+              model_name: modelName,
+              direction
+            });
+
+          if (error) {
+            console.error('Error saving swipe:', error);
+          } else {
+            console.log(`Successfully recorded ${direction} swipe for ${modelName}`);
+
+            // Send email only for right swipes that were successfully recorded
+            if (direction === 'right') {
+              await sendEmail(
+                'family@felixtell.com',
+                'New Match',
+                `Brand ${user.email} matched with model ${modelName}`
+              );
+            }
+          }
+        } else {
+          console.log(`Swipe already exists for ${modelName} - preventing duplicate`);
+        }
+
+        // Prepare for the next model card - but avoid UI flicker
+        // First prepare the next model without removing this one
+        const nextModels = [...modelsState];
+        nextModels.shift(); // Remove the first model
+        
+        // Update UI when logged in - with a smooth transition
+        setDragX(0);
+        setSwipeDirection(null);
+        
+        // Don't set justRemoved - it causes the flicker
+        // Instead, directly update the models state
+        setModelsState(nextModels);
+      }
+    } catch (err) {
+      console.error('Error in recordSwipe:', err);
+    } finally {
+      // Reset processing flags after a delay (reduced to avoid UI pauses)
+      setTimeout(() => {
+        setIsProcessingSwipe(false);
+        processingSwipeRef.current = false;
+        console.log('Swipe processing completed, allowing new swipes');
+      }, 500);  // Reduced from 1000ms to 500ms
+    }
+  };
+
+  // Update handleTouchEnd to use the centralized function
   const handleTouchEnd = async (e: React.TouchEvent | React.MouseEvent) => {
     if (!isSwiping.current) return;
+    // Prevent double event firing
+    if (swipeLockRef.current) return;
+    swipeLockRef.current = true;
+    setTimeout(() => { swipeLockRef.current = false; }, 1000);
+    e.preventDefault();
+    if ('stopPropagation' in e) e.stopPropagation();
     setIsDragging(false);
+    if (isProcessingSwipe || processingSwipeRef.current) {
+      console.log('Touch end - Already processing a swipe');
+      return;
+    }
     const endX = 'changedTouches' in e ? e.changedTouches[0].clientX : (e as React.MouseEvent).clientX;
     const diff = endX - startX.current;
-    
     if (diff > 60 || diff < -60) {
       const direction = diff > 60 ? 'right' : 'left';
-      
-      if (!user) {
-        // Wenn nicht angemeldet, Swipe speichern und Anmeldung fordern
-        const pendingSwipe = {
-          model_name: modelsState[0]?.name,
-          direction
-        };
-        localStorage.setItem('pendingSwipe', JSON.stringify(pendingSwipe));
-        setShowBrandForm(true);
-        setAuthMode('signup');
-      } else {
-        // Wenn angemeldet, Swipe in Supabase speichern
-        const { error } = await supabase
-          .from('swipes')
-          .insert({
-            brand_id: user.id,
-            model_name: modelsState[0]?.name,
-            direction
-          });
-
-        if (error) {
-          console.error('Error saving swipe:', error);
-        }
-
-        // Bei Rechtsswipe Benachrichtigung senden
-        if (direction === 'right') {
-          await sendEmail(
-            'family@felixtell.com',
-            'New Match',
-            `Brand ${user.email} matched with model ${modelsState[0]?.name}`
-          );
-        }
-      }
-
-      setModelsState((prev) => prev.slice(1));
-      setDragX(0);
-      setSwipeDirection(null);
-      setJustRemoved(true);
-      setTimeout(() => setJustRemoved(false), 0);
+      await recordSwipe(modelsState[0]?.name, direction);
     } else {
       setDragX(0);
     }
     isSwiping.current = false;
   };
 
+  // Update handleUp to use centralized function
+  const handleUp = async (e: MouseEvent | TouchEvent) => {
+    if (!isSwiping.current) return;
+    // Prevent double event firing
+    if (swipeLockRef.current) return;
+    swipeLockRef.current = true;
+    setTimeout(() => { swipeLockRef.current = false; }, 1000);
+    e.preventDefault();
+    if ('stopPropagation' in e) e.stopPropagation();
+    let clientX = 0;
+    if ('changedTouches' in e && e.changedTouches.length > 0) {
+      clientX = e.changedTouches[0].clientX;
+    } else if ('clientX' in e) {
+      clientX = (e as MouseEvent).clientX;
+    }
+    const diff = clientX - startX.current;
+    setIsDragging(false);
+    if (isProcessingSwipe || processingSwipeRef.current) {
+      console.log('Handle up - Already processing a swipe');
+      return;
+    }
+    if (diff > 60 || diff < -60) {
+      const direction = diff > 60 ? 'right' : 'left';
+      await recordSwipe(modelsState[0]?.name, direction);
+    } else {
+      setDragX(0);
+    }
+    isSwiping.current = false;
+  };
+
+  // Update the processPendingSwipe function
   useEffect(() => {
-    if (!justRemoved) return;
-    const timeout = setTimeout(() => setJustRemoved(false), 0);
-    return () => clearTimeout(timeout);
-  }, [justRemoved]);
+    const processPendingSwipe = async () => {
+      if (user) {
+        const pendingSwipeStr = localStorage.getItem('pendingSwipe');
+        if (pendingSwipeStr && !isProcessingSwipe && !processingSwipeRef.current) {
+          try {
+            // Mark as processing to prevent duplicate handling
+            setIsProcessingSwipe(true);
+            processingSwipeRef.current = true;
+            
+            // Parse pending swipe data
+            const pendingSwipe = JSON.parse(pendingSwipeStr);
+            console.log('Processing pending swipe for:', pendingSwipe.model_name);
+            
+            // Check if this swipe already exists
+            const { data: existingSwipes } = await supabase
+              .from('swipes')
+              .select('id')
+              .eq('brand_id', user.id)
+              .eq('model_name', pendingSwipe.model_name)
+              .eq('direction', pendingSwipe.direction);
+              
+            // Only process if no existing swipe
+            if (!existingSwipes || existingSwipes.length === 0) {
+              // Record the swipe in database
+              const { error } = await supabase
+                .from('swipes')
+                .insert({
+                  brand_id: user.id,
+                  model_name: pendingSwipe.model_name,
+                  direction: pendingSwipe.direction
+                });
+                
+              if (error) {
+                console.error('Error saving pending swipe:', error);
+              } else {
+                // Only send email for right swipes
+                if (pendingSwipe.direction === 'right') {
+                  await sendEmail(
+                    'family@felixtell.com',
+                    'New Match',
+                    `Brand ${user.email} matched with model ${pendingSwipe.model_name}`
+                  );
+                }
+                
+                console.log('Successfully processed pending swipe');
+              }
+            }
+            
+            // Remove the pending swipe from localStorage
+            localStorage.removeItem('pendingSwipe');
+            
+            // Fetch the full list of swiped models to correctly update the UI
+            await fetchSwipedModels();
+            
+          } catch (err) {
+            console.error('Error processing pending swipe:', err);
+          } finally {
+            // Reset processing state
+            setTimeout(() => {
+              setIsProcessingSwipe(false);
+              processingSwipeRef.current = false;
+            }, 1000);
+          }
+        }
+      }
+    };
+
+    processPendingSwipe();
+  }, [user]);
+
+  // Make fetchSwipedModels available as a function that can be called
+  const fetchSwipedModels = async () => {
+    if (user) {
+      const { data: swipes, error } = await supabase
+        .from('swipes')
+        .select('model_name')
+        .eq('brand_id', user.id);
+      if (!error && swipes) {
+        const swipedNames = new Set(swipes.map((s: any) => s.model_name));
+        setModelsState(allModels.filter((m) => !swipedNames.has(m.name)));
+      }
+    } else {
+      setModelsState(allModels);
+    }
+  };
+
+  // Update the useEffect to use the function
+  useEffect(() => {
+    fetchSwipedModels();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const handleTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
     isSwiping.current = true;
@@ -168,9 +351,16 @@ export default function Home() {
     setShowBecomeModelForm(true);
   };
 
-  const sendEmail = async (to: string, subject: string, body: string) => {
+  const openBrandForm = () => {
+    setAuthMode('login');
+    setAuthSuccess('');
+    setAuthError('');
+    setShowBrandForm(true);
+  };
+
+  const sendEmail = async (to: string, subject: string, body: string, attachments?: any[]) => {
     try {
-      console.log('Sending email:', { to, subject, body });
+      console.log('Sending email:', { to, subject, body, hasAttachments: !!attachments });
       const response = await fetch('/api/send-email', {
         method: 'POST',
         headers: {
@@ -180,7 +370,8 @@ export default function Home() {
           to,
           subject,
           body,
-          reply_to: `"${to}" <${to}>`
+          reply_to: `"${to}" <${to}>`,
+          attachments
         }),
       });
       
@@ -225,10 +416,68 @@ export default function Home() {
   const handleBecomeModelSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (becomeModelEmail && becomeModelAge) {
-      await sendEmail(becomeModelEmail, 'New Application', `Email: ${becomeModelEmail}, Age: ${becomeModelAge}`);
-      setBecomeModelEmail('');
-      setBecomeModelAge('');
-      setShowBecomeModelForm(false);
+      // Set loading state
+      setFileUploadStatus('Sending application...');
+      
+      try {
+        // Convert images to base64
+        const filePromises = Array.from(selectedFiles).map(file => {
+          return new Promise<{name: string, base64: string}>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              resolve({ 
+                name: file.name, 
+                base64: reader.result as string 
+              });
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+        });
+        
+        const fileBase64Array = await Promise.all(filePromises);
+        
+        // Prepare email content
+        const emailText = `Contact: ${becomeModelEmail}\n\nAbout: ${becomeModelAge}\n\n${selectedFiles.length} photo(s) attached`;
+        
+        // Send the email with attachments
+        const success = await sendEmail(
+          'family@felixtell.com',
+          'New Model Application',
+          emailText,
+          fileBase64Array.map(file => ({
+            filename: file.name,
+            content: file.base64,
+          }))
+        );
+        
+        if (!success) {
+          throw new Error('Failed to send application');
+        }
+        
+        // Reset form and show success
+        setFileUploadStatus('Application sent successfully!');
+        setTimeout(() => {
+          setBecomeModelEmail('');
+          setBecomeModelAge('');
+          setSelectedFiles([]);
+          setFileUploadStatus('');
+          setShowBecomeModelForm(false);
+        }, 2000);
+      } catch (error) {
+        console.error('Error sending application:', error);
+        setFileUploadStatus('Error sending application. Please try again.');
+      }
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      // Limit to maximum 5 files
+      const fileArray = Array.from(files).slice(0, 5);
+      setSelectedFiles(fileArray);
+      setFileUploadStatus(`${fileArray.length} file(s) selected`);
     }
   };
 
@@ -240,91 +489,6 @@ export default function Home() {
     setDragX(diff);
   };
 
-  // Globale Drag-Events für echtes Swipen
-  useEffect(() => {
-    if (!isDragging) return;
-    const handleMove = (e: MouseEvent | TouchEvent) => {
-      let clientX = 0;
-      if ('touches' in e && e.touches.length > 0) {
-        clientX = e.touches[0].clientX;
-      } else if ('changedTouches' in e && e.changedTouches.length > 0) {
-        clientX = e.changedTouches[0].clientX;
-      } else if ('clientX' in e) {
-        clientX = (e as MouseEvent).clientX;
-      }
-      const diff = clientX - startX.current;
-      setDragX(diff);
-    };
-    const handleUp = async (e: MouseEvent | TouchEvent) => {
-      let clientX = 0;
-      if ('changedTouches' in e && e.changedTouches.length > 0) {
-        clientX = e.changedTouches[0].clientX;
-      } else if ('clientX' in e) {
-        clientX = (e as MouseEvent).clientX;
-      }
-      const diff = clientX - startX.current;
-      setIsDragging(false);
-      
-      if (diff > 60 || diff < -60) {
-        const direction = diff > 60 ? 'right' : 'left';
-        
-        if (!user) {
-          const pendingSwipe = {
-            model_name: modelsState[0]?.name,
-            direction
-          };
-          localStorage.setItem('pendingSwipe', JSON.stringify(pendingSwipe));
-          setShowBrandForm(true);
-          setAuthMode('signup');
-        } else {
-          const { error } = await supabase
-            .from('swipes')
-            .insert({
-              brand_id: user.id,
-              model_name: modelsState[0]?.name,
-              direction
-            });
-
-          if (error) {
-            console.error('Error saving swipe:', error);
-          }
-
-          if (direction === 'right') {
-            await sendEmail(
-              'family@felixtell.com',
-              'New Match',
-              `Brand ${user.email} matched with model ${modelsState[0]?.name}`
-            );
-          }
-        }
-
-        setModelsState((prev) => prev.slice(1));
-        setDragX(0);
-        setSwipeDirection(null);
-        setJustRemoved(true);
-      } else {
-        setDragX(0);
-      }
-      isSwiping.current = false;
-    };
-    window.addEventListener('mousemove', handleMove);
-    window.addEventListener('touchmove', handleMove);
-    window.addEventListener('mouseup', handleUp);
-    window.addEventListener('touchend', handleUp);
-    return () => {
-      window.removeEventListener('mousemove', handleMove);
-      window.removeEventListener('touchmove', handleMove);
-      window.removeEventListener('mouseup', handleUp);
-      window.removeEventListener('touchend', handleUp);
-    };
-  }, [isDragging]);
-
-  useEffect(() => {
-    if (!justRemoved) return;
-    const timeout = setTimeout(() => setJustRemoved(false), 0);
-    return () => clearTimeout(timeout);
-  }, [justRemoved]);
-
   // Supabase Auth
   useEffect(() => {
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -333,61 +497,6 @@ export default function Home() {
     supabase.auth.getUser().then(({ data }) => setUser(data?.user ?? null));
     return () => { listener?.subscription.unsubscribe(); };
   }, []);
-
-  // Nach erfolgreicher Anmeldung/Registrierung den ausstehenden Swipe verarbeiten
-  useEffect(() => {
-    const processPendingSwipe = async () => {
-      if (user) {
-        const pendingSwipeStr = localStorage.getItem('pendingSwipe');
-        if (pendingSwipeStr) {
-          const pendingSwipe = JSON.parse(pendingSwipeStr);
-          const { error } = await supabase
-            .from('swipes')
-            .insert({
-              brand_id: user.id,
-              model_name: pendingSwipe.model_name,
-              direction: pendingSwipe.direction
-            });
-
-          if (error) {
-            console.error('Error saving pending swipe:', error);
-          }
-
-          if (pendingSwipe.direction === 'right') {
-            await sendEmail(
-              'family@felixtell.com',
-              'New Match',
-              `Brand ${user.email} matched with model ${pendingSwipe.model_name}`
-            );
-          }
-
-          localStorage.removeItem('pendingSwipe');
-        }
-      }
-    };
-
-    processPendingSwipe();
-  }, [user]);
-
-  // Beim User-Login: Geswipte Models filtern
-  useEffect(() => {
-    const fetchSwipedModels = async () => {
-      if (user) {
-        const { data: swipes, error } = await supabase
-          .from('swipes')
-          .select('model_name')
-          .eq('brand_id', user.id);
-        if (!error && swipes) {
-          const swipedNames = new Set(swipes.map((s: any) => s.model_name));
-          setModelsState(allModels.filter((m) => !swipedNames.has(m.name)));
-        }
-      } else {
-        setModelsState(allModels);
-      }
-    };
-    fetchSwipedModels();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
 
   // Funktion zum Abrufen der abgelehnten Models (Linksswipes)
   const fetchRejectedModels = async () => {
@@ -440,6 +549,8 @@ export default function Home() {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
+    setAuthSuccess('');
+    
     if (authMode === 'login') {
       const { error } = await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
       if (error) {
@@ -460,8 +571,10 @@ export default function Home() {
             setAuthError(error.message);
           }
         } else {
-          setAuthError('Please check your email for the confirmation link.');
-          setShowBrandForm(false);
+          setAuthSuccess(`Confirmation email sent! Please check ${authEmail} and click the verification link to activate your account.`);
+          // Clear the form but don't hide it so user can see the success message
+          setAuthEmail('');
+          setAuthPassword('');
         }
       } catch (err) {
         setAuthError('Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
@@ -472,6 +585,7 @@ export default function Home() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
+    setAuthSuccess('');
   };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
@@ -484,6 +598,34 @@ export default function Home() {
       setForgotPasswordMessage('If the email exists, a reset link has been sent.');
     }
   };
+
+  // Restore global drag events for real swiping
+  useEffect(() => {
+    if (!isDragging) return;
+    const handleMove = (e: MouseEvent | TouchEvent) => {
+      let clientX = 0;
+      if ('touches' in e && e.touches.length > 0) {
+        clientX = e.touches[0].clientX;
+      } else if ('changedTouches' in e && e.changedTouches.length > 0) {
+        clientX = e.changedTouches[0].clientX;
+      } else if ('clientX' in e) {
+        clientX = (e as MouseEvent).clientX;
+      }
+      const diff = clientX - startX.current;
+      setDragX(diff);
+    };
+    
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('touchmove', handleMove);
+    window.addEventListener('mouseup', handleUp);
+    window.addEventListener('touchend', handleUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('touchmove', handleMove);
+      window.removeEventListener('mouseup', handleUp);
+      window.removeEventListener('touchend', handleUp);
+    };
+  }, [isDragging]);
 
   return (
     <>
@@ -691,7 +833,7 @@ export default function Home() {
         {!user && (
           <div className="w-full flex justify-center mb-9">
             <button
-              onClick={() => setShowBrandForm(true)}
+              onClick={openBrandForm}
               className="px-8 py-4 rounded-full bg-white/90 text-[var(--gold)] border border-[var(--gold)] font-semibold text-xl shadow-lg hover:bg-[var(--gold)] hover:text-white transition-all duration-300 hover:shadow-xl"
               style={{ minWidth: '180px', fontSize: '1.35rem' }}
             >
@@ -701,7 +843,7 @@ export default function Home() {
         )}
 
         <div className="flex flex-col items-center mb-4" style={{position: 'relative', width: '18rem', height: '26rem'}}>
-          {modelsState.length > 0 && !justRemoved && !showBecomeModelForm && (
+          {modelsState.length > 0 && !showBecomeModelForm && (
             <div
               ref={swipeRef}
               className={`w-72 h-[26rem] bg-gray-100 flex flex-col items-center justify-between rounded-xl shadow-xl border border-[#E5C76B] mb-4 select-none p-6`}
@@ -715,32 +857,18 @@ export default function Home() {
               <div className="flex justify-center gap-10 mb-4 mt-auto">
                 <button
                   className="w-12 h-12 flex items-center justify-center rounded-full bg-red-100 text-red-500 text-2xl shadow-lg hover:bg-red-200 transition-all duration-300 hover:shadow-xl"
-                  onClick={async () => {
-                    const direction = 'left';
-                    if (!user) {
-                      const pendingSwipe = {
-                        model_name: modelsState[0]?.name,
-                        direction
-                      };
-                      localStorage.setItem('pendingSwipe', JSON.stringify(pendingSwipe));
-                      setShowBrandForm(true);
-                      setAuthMode('signup');
-                    } else {
-                      const { error } = await supabase
-                        .from('swipes')
-                        .insert({
-                          brand_id: user.id,
-                          model_name: modelsState[0]?.name,
-                          direction
-                        });
-                      if (error) {
-                        console.error('Error saving swipe:', error);
-                      }
+                  onClick={async (e) => {
+                    // Prevent event bubbling
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // Early return if already processing
+                    if (isProcessingSwipe || processingSwipeRef.current) {
+                      console.log('Button click - Already processing a swipe');
+                      return;
                     }
-                    setModelsState((prev) => prev.slice(1));
-                    setDragX(0);
-                    setSwipeDirection(null);
-                    setJustRemoved(true);
+                    
+                    await recordSwipe(modelsState[0]?.name, 'left');
                   }}
                   aria-label="Dislike"
                 >
@@ -748,43 +876,31 @@ export default function Home() {
                 </button>
                 <button
                   className="w-12 h-12 flex items-center justify-center rounded-full bg-green-100 text-green-500 text-2xl shadow-lg hover:bg-green-200 transition-all duration-300 hover:shadow-xl"
-                  onClick={async () => {
-                    const direction = 'right';
-                    if (!user) {
-                      const pendingSwipe = {
-                        model_name: modelsState[0]?.name,
-                        direction
-                      };
-                      localStorage.setItem('pendingSwipe', JSON.stringify(pendingSwipe));
-                      setShowBrandForm(true);
-                      setAuthMode('signup');
-                    } else {
-                      const { error } = await supabase
-                        .from('swipes')
-                        .insert({
-                          brand_id: user.id,
-                          model_name: modelsState[0]?.name,
-                          direction
-                        });
-                      if (error) {
-                        console.error('Error saving swipe:', error);
-                      }
-                      await sendEmail(
-                        'family@felixtell.com',
-                        'New Match',
-                        `Brand ${user.email} matched with model ${modelsState[0]?.name}`
-                      );
+                  onClick={async (e) => {
+                    // Prevent event bubbling
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // Early return if already processing
+                    if (isProcessingSwipe || processingSwipeRef.current) {
+                      console.log('Button click - Already processing a swipe');
+                      return;
                     }
-                    setModelsState((prev) => prev.slice(1));
-                    setDragX(0);
-                    setSwipeDirection(null);
-                    setJustRemoved(true);
+                    
+                    await recordSwipe(modelsState[0]?.name, 'right');
                   }}
                   aria-label="Like"
                 >
                   &#10004;
                 </button>
               </div>
+            </div>
+          )}
+          
+          {modelsState.length === 0 && (
+            <div className="w-72 h-[26rem] bg-gray-100 flex flex-col items-center justify-center rounded-xl shadow-xl border border-[#E5C76B] mb-4 p-6">
+              <p className="text-gray-500 text-center">No more models to display</p>
+              <p className="text-gray-400 text-sm text-center mt-2">Check back later for more</p>
             </div>
           )}
         </div>
@@ -888,18 +1004,98 @@ export default function Home() {
         )}
 
         {showBecomeModelForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-            <div className="bg-white p-8 rounded">
-              <h2 className="text-2xl font-bold mb-4">Become a Model</h2>
-              <form onSubmit={handleBecomeModelSubmit}>
-                <p>Please enter your email address or phone number:</p>
-                <input type="text" className="border p-2 w-full mb-4" value={becomeModelEmail} onChange={(e) => setBecomeModelEmail(e.target.value)} />
-                <p>Age:</p>
-                <input type="number" className="border p-2 w-full mb-4" value={becomeModelAge} onChange={(e) => setBecomeModelAge(e.target.value)} />
-                <p>Upload photos:</p>
-                <input type="file" className="mb-4" />
-                <button type="submit" className="px-4 py-2 bg-[var(--gold)] text-white rounded">Send</button>
-                <button type="button" className="px-4 py-2 bg-gray-300 text-black rounded ml-2" onClick={() => setShowBecomeModelForm(false)}>Close</button>
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold mb-4">Become a Model</h2>
+                <button 
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300"
+                  onClick={() => setShowBecomeModelForm(false)}
+                >
+                  ×
+                </button>
+              </div>
+              <form onSubmit={handleBecomeModelSubmit} className="flex flex-col space-y-4">
+                <div>
+                  <label className="block text-gray-700 mb-2 font-medium">Contact information:</label>
+                  <input 
+                    type="text" 
+                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-[var(--gold)] focus:border-[var(--gold)] outline-none" 
+                    placeholder="Email address or phone number" 
+                    value={becomeModelEmail} 
+                    onChange={(e) => setBecomeModelEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-gray-700 mb-2 font-medium">Write something about yourself:</label>
+                  <textarea
+                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-[var(--gold)] focus:border-[var(--gold)] outline-none"
+                    placeholder="Tell us about yourself, experience, height, age, interests..."
+                    value={becomeModelAge} 
+                    onChange={(e) => setBecomeModelAge(e.target.value)}
+                    rows={4}
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-gray-700 mb-2 font-medium">Upload photos:</label>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      className="px-4 py-2 border border-[var(--gold)] text-[var(--gold)] bg-white hover:bg-[var(--gold)] hover:text-white transition-colors rounded-lg"
+                      onClick={() => document.getElementById('model-photos')?.click()}
+                    >
+                      Select Photos
+                    </button>
+                    <input 
+                      id="model-photos" 
+                      type="file" 
+                      className="hidden" 
+                      accept="image/*" 
+                      multiple 
+                      onChange={handleFileSelect}
+                      lang="en"
+                    />
+                    <span className="ml-3 text-gray-500 text-sm">
+                      {fileUploadStatus || "Up to 5 photos"}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs text-gray-500">Please include a headshot and full body shot</p>
+                  
+                  {selectedFiles.length > 0 && (
+                    <div className="mt-3 p-2 border rounded-lg bg-gray-50">
+                      <p className="text-sm font-medium text-gray-700 mb-1">Selected files:</p>
+                      <ul className="text-xs text-gray-600">
+                        {Array.from(selectedFiles).map((file, index) => (
+                          <li key={index} className="truncate">
+                            {file.name} ({Math.round(file.size / 1024)} KB)
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button 
+                    type="submit" 
+                    className="flex-1 py-3 bg-[var(--gold)] text-white rounded-lg hover:bg-[#D4AF37] transition-colors disabled:opacity-50"
+                    disabled={fileUploadStatus === 'Sending application...'}
+                  >
+                    {fileUploadStatus === 'Sending application...' ? 'Sending...' : 'Submit'}
+                  </button>
+                  <button 
+                    type="button" 
+                    className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors" 
+                    onClick={() => setShowBecomeModelForm(false)}
+                    disabled={fileUploadStatus === 'Sending application...'}
+                  >
+                    Cancel
+                  </button>
+                </div>
               </form>
             </div>
           </div>
@@ -907,69 +1103,138 @@ export default function Home() {
 
         {showBrandForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-8 rounded shadow flex flex-col items-center max-w-xs w-full">
-              <h2 className="text-2xl font-bold mb-4">{authMode === 'login' ? 'Brand Login' : 'Brand Signup'}</h2>
+            <div className="bg-white p-8 rounded-xl shadow-xl border border-[#E5C76B] max-w-md w-full">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold">{authMode === 'login' ? 'Brand Login' : 'Brand Signup'}</h2>
+                <button 
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300"
+                  onClick={() => {
+                    setShowBrandForm(false);
+                    setAuthSuccess('');
+                    setAuthError('');
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+              
               {!showForgotPassword ? (
                 <>
-                  <form onSubmit={handleAuth} className="w-full flex flex-col gap-3">
-                    <input
-                      type="email"
-                      placeholder="Email"
-                      className="border p-2 rounded"
-                      value={authEmail}
-                      onChange={e => setAuthEmail(e.target.value)}
-                      required
-                    />
-                    <input
-                      type="password"
-                      placeholder="Password"
-                      className="border p-2 rounded"
-                      value={authPassword}
-                      onChange={e => setAuthPassword(e.target.value)}
-                      required
-                    />
-                    {authError && <div className="text-red-500 text-sm">{authError}</div>}
+                  <form onSubmit={handleAuth} className="w-full flex flex-col gap-4">
+                    <div>
+                      <label className="block mb-1 text-sm font-medium text-gray-700">Email</label>
+                      <input
+                        type="email"
+                        placeholder="Your email address"
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-[var(--gold)] focus:border-[var(--gold)] outline-none transition"
+                        value={authEmail}
+                        onChange={e => setAuthEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block mb-1 text-sm font-medium text-gray-700">Password</label>
+                      <input
+                        type="password"
+                        placeholder="Your password"
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-[var(--gold)] focus:border-[var(--gold)] outline-none transition"
+                        value={authPassword}
+                        onChange={e => setAuthPassword(e.target.value)}
+                        required
+                      />
+                    </div>
+                    
+                    {authError && (
+                      <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm">
+                        {authError}
+                      </div>
+                    )}
+                    
+                    {authSuccess && (
+                      <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">
+                        {authSuccess}
+                      </div>
+                    )}
+                    
+                    {authMode === 'signup' && !authSuccess && (
+                      <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg border border-blue-100">
+                        <p className="font-medium text-blue-800 mb-1">Important:</p>
+                        <p>After signing up, you'll receive a confirmation email with a verification link from Felix Tell.</p>
+                        <p className="mt-1">You must click this link to activate your account.</p>
+                      </div>
+                    )}
+                    
                     <button
                       type="submit"
-                      className="bg-[var(--gold)] text-white rounded px-4 py-2 font-semibold"
+                      className="w-full py-3 rounded-lg bg-[var(--gold)] text-white font-semibold text-lg hover:bg-[#c4a436] transition-colors mt-2"
                     >
                       {authMode === 'login' ? 'Login' : 'Sign Up'}
                     </button>
+                    
                     {authMode === 'login' && (
                       <button
                         type="button"
-                        className="mt-2 text-sm text-[var(--gold)] underline hover:text-black transition"
+                        className="self-start text-sm text-[var(--gold)] hover:text-[#c4a436] transition"
                         onClick={() => setShowForgotPassword(true)}
                       >
                         Forgot password?
                       </button>
                     )}
                   </form>
-                  <div className="flex flex-col gap-2 mt-6 w-full">
-                    <button
-                      type="button"
-                      className="w-full py-2 rounded-full border border-[var(--gold)] bg-white text-[var(--gold)] text-sm font-medium transition hover:bg-[var(--gold)] hover:text-white focus:outline-none"
-                      onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}
-                    >
-                      {authMode === 'login' ? 'No account? Sign up' : 'Already have an account? Login'}
-                    </button>
-                    <button
-                      type="button"
-                      className="w-full py-2 rounded-full border border-gray-200 bg-gray-100 text-gray-500 text-sm font-medium transition hover:bg-gray-200 focus:outline-none"
-                      onClick={() => setShowBrandForm(false)}
-                    >
-                      Close
-                    </button>
+                  
+                  <div className="flex items-center my-6">
+                    <div className="flex-1 h-px bg-gray-300"></div>
+                    <span className="px-4 text-sm text-gray-500">or</span>
+                    <div className="flex-1 h-px bg-gray-300"></div>
                   </div>
+                  
+                  <button
+                    type="button"
+                    className="w-full py-3 rounded-lg border border-[var(--gold)] bg-white text-[var(--gold)] font-medium transition hover:bg-[var(--gold)] hover:text-white focus:outline-none"
+                    onClick={() => {
+                      setAuthMode(authMode === 'login' ? 'signup' : 'login');
+                      setAuthSuccess('');
+                      setAuthError('');
+                    }}
+                  >
+                    {authMode === 'login' ? 'New brand? Create account' : 'Already have an account? Login'}
+                  </button>
                 </>
               ) : (
                 <>
-                  <form onSubmit={handleForgotPassword} className="w-full flex flex-col gap-3">
-                    <input type="email" placeholder="Email for reset link" className="border p-2 rounded" value={forgotPasswordEmail} onChange={e => setForgotPasswordEmail(e.target.value)} required />
-                    <button type="submit" className="bg-[var(--gold)] text-white rounded px-4 py-2 font-semibold">Send reset link</button>
+                  <form onSubmit={handleForgotPassword} className="w-full flex flex-col gap-4">
+                    <div>
+                      <label className="block mb-1 text-sm font-medium text-gray-700">Email Address</label>
+                      <input 
+                        type="email" 
+                        placeholder="Enter your email" 
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-[var(--gold)] focus:border-[var(--gold)] outline-none transition"
+                        value={forgotPasswordEmail} 
+                        onChange={e => setForgotPasswordEmail(e.target.value)} 
+                        required 
+                      />
+                    </div>
+                    
+                    {forgotPasswordMessage && (
+                      <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">
+                        {forgotPasswordMessage}
+                      </div>
+                    )}
+                    
+                    <button 
+                      type="submit" 
+                      className="w-full py-3 rounded-lg bg-[var(--gold)] text-white font-semibold text-lg hover:bg-[#c4a436] transition-colors"
+                    >
+                      Send Password Reset Link
+                    </button>
                   </form>
-                  {forgotPasswordMessage && <div className="mt-2 text-green-600 text-sm">{forgotPasswordMessage}</div>}
-                  <button className="mt-4 text-sm text-gray-500 underline hover:text-gray-700" onClick={() => setShowForgotPassword(false)}>Back to login</button>
+                  
+                  <button 
+                    className="mt-4 text-sm text-[var(--gold)] hover:text-[#c4a436] transition" 
+                    onClick={() => setShowForgotPassword(false)}
+                  >
+                    Back to login
+                  </button>
                 </>
               )}
             </div>

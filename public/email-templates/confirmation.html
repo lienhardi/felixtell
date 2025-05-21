@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify your email address - Felix Tell</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Times New Roman', serif;
+    }
+    body {
+      background-color: #E8DCCE;
+      color: #333;
+      line-height: 1.6;
+    }
+    .email-container {
+      max-width: 600px;
+      margin: 20px auto;
+      background: #ffffff;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+    }
+    .header {
+      padding: 30px 20px;
+      text-align: center;
+      background-image: repeating-linear-gradient(
+        135deg,
+        #E8DCCE,
+        #E8DCCE 36px,
+        #F0C040 36px,
+        #F0C040 38px,
+        #F3EBDD 38px,
+        #F3EBDD 76px
+      );
+    }
+    .content {
+      padding: 30px;
+      background-color: #fff;
+    }
+    .footer {
+      background-color: #F5F5F5;
+      padding: 20px;
+      text-align: center;
+      color: #555;
+      font-size: 14px;
+      border-top: 1px solid #eee;
+    }
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: normal;
+      text-align: center;
+      letter-spacing: 2px;
+      color: #000;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+      font-family: 'Times New Roman', serif;
+    }
+    h2 {
+      font-size: 20px;
+      margin-bottom: 20px;
+      color: #333;
+      font-weight: normal;
+      letter-spacing: 1px;
+    }
+    p {
+      margin-bottom: 20px;
+      color: #444;
+      font-size: 16px;
+    }
+    .button {
+      display: inline-block;
+      padding: 12px 30px;
+      background-color: #F0C040;
+      color: white !important;
+      text-decoration: none;
+      font-weight: bold;
+      margin: 20px 0;
+      text-align: center;
+      border: none;
+      font-size: 16px;
+      border-radius: 50px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .button:hover {
+      background-color: #D4AF37;
+    }
+    .established {
+      font-size: 14px;
+      text-align: center;
+      margin-top: 5px;
+      color: #333;
+    }
+    .bureau {
+      font-size: 18px;
+      text-align: center;
+      margin-top: 0;
+      color: #000;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .model-card {
+      border: 1px solid #E5C76B;
+      border-radius: 12px;
+      background: #fff;
+      padding: 20px;
+      margin: 20px auto;
+      max-width: 300px;
+      box-shadow: 0 4px 24px rgba(246, 211, 101, 0.1);
+      text-align: center;
+    }
+    .shield-logo {
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 15px;
+      display: block;
+      background: linear-gradient(135deg, #8B1A36, #671428);
+      border-radius: 50% 50% 45% 45%; 
+      position: relative;
+      text-align: center;
+      color: #ffffff;
+      font-size: 14px;
+      padding-top: 40px;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <h1>Felix Tell</h1>
+      <div class="bureau">Artists' Bureau</div>
+      <div class="established">1842</div>
+    </div>
+    <div class="content">
+      <div class="model-card">
+        <h2>Welcome!</h2>
+        <p>Please confirm your email address to activate your account.</p>
+        <div style="text-align: center;">
+          <a href="{{ .ConfirmationURL }}" class="button">Confirm Email</a>
+        </div>
+      </div>
+      <p>If you did not sign up for an account, you can ignore this email.</p>
+      <p>Questions? Contact us: <a href="mailto:family@felixtell.com" style="color: #F0C040;">family@felixtell.com</a></p>
+    </div>
+    <div class="footer">
+      © Felix Tell – Artists' Bureau 1842
+    </div>
+  </div>
+</body>
+</html> 
