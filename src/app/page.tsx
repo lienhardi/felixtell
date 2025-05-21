@@ -1,9 +1,29 @@
 "use client";
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { supabase } from '@/config/supabase';
 import Link from 'next/link';
 import { User } from '@supabase/supabase-js';
+import { useRouter } from 'next/navigation';
+import fs from 'fs';
+import path from 'path';
+
+// Define the model images path
+const MODEL_IMAGES_PATH = '/models/milano 21.05.2025';
+
+// Helper function to get a deterministic image for a model name
+const getModelImage = (modelName: string, availableImages: string[]) => {
+  if (!availableImages || availableImages.length === 0) {
+    return ''; // Return empty string if no images available
+  }
+
+  // Use the model name as a seed for consistent image selection
+  const hash = modelName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  
+  // Get a deterministic index into the available images array
+  const imageIndex = hash % availableImages.length;
+  return availableImages[imageIndex];
+};
 
 export default function Home() {
   const [showContactForm, setShowContactForm] = useState(false);
@@ -14,6 +34,8 @@ export default function Home() {
   const [contactSuccess, setContactSuccess] = useState(false);
   const [becomeModelEmail, setBecomeModelEmail] = useState('');
   const [becomeModelAge, setBecomeModelAge] = useState('');
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [fileUploadStatus, setFileUploadStatus] = useState('');
   const [userType, setUserType] = useState<'talent' | 'brand' | null>(null);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [authEmail, setAuthEmail] = useState('');
@@ -33,14 +55,127 @@ export default function Home() {
   const [isProcessingSwipe, setIsProcessingSwipe] = useState(false);
   const processingSwipeRef = useRef(false);
   const swipeLockRef = useRef(false);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [fileUploadStatus, setFileUploadStatus] = useState('');
 
-  // Models-Array mit 100 Platzhaltern
-  const allModels = Array.from({ length: 100 }, (_, i) => ({ name: `Model ${i + 1}`, img: null }));
-  const [modelsState, setModelsState] = useState(allModels);
+  // State for available images
+  const [availableImages, setAvailableImages] = useState<string[]>([]);
+  const [imagesLoaded, setImagesLoaded] = useState(false);
+
+  // Helper function to shuffle an array (Fisher-Yates algorithm)
+  const shuffleArray = <T extends unknown>(array: T[]): T[] => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
+
+  // Load the available images from the API
+  useEffect(() => {
+    const fetchImages = async () => {
+      try {
+        const response = await fetch('/api/model-images');
+        if (!response.ok) {
+          throw new Error('Failed to fetch images');
+        }
+        
+        const data = await response.json();
+        if (data.images && Array.isArray(data.images)) {
+          setAvailableImages(data.images);
+          setImagesLoaded(true);
+        }
+      } catch (error) {
+        console.error('Error fetching model images:', error);
+      }
+    };
+
+    fetchImages();
+  }, []);
+
+  // Create base model data
+  const createModels = useCallback(() => {
+    if (!imagesLoaded || availableImages.length === 0) {
+      return []; // Return empty array if images haven't loaded yet
+    }
+
+    // Check if we have stored models from a previous render in this session
+    const storedModels = sessionStorage.getItem('felixtell_models');
+    if (storedModels) {
+      try {
+        // Check if the stored models have the same number of images as currently available
+        const parsedModels = JSON.parse(storedModels);
+        const storedImageCount = parsedModels.length > 0 ? 
+          parsedModels[0].availableImagesCount || 0 : 0;
+          
+        // If the image count is the same, reuse the stored models
+        if (storedImageCount === availableImages.length) {
+          return parsedModels;
+        }
+        // Otherwise, we'll regenerate models with the new image set
+      } catch (e) {
+        console.error('Error parsing stored models:', e);
+      }
+    }
+    
+    // Generate models with consistent names
+    const modelCount = Math.min(100, availableImages.length); // Limit to available images or 100
+    const models = Array.from({ length: modelCount }, (_, i) => ({ 
+      id: i + 1, 
+      name: `Model ${i + 1}`, 
+      img: getModelImage(`Model ${i + 1}`, availableImages),
+      availableImagesCount: availableImages.length // Store the count for comparison later
+    }));
+    
+    // Shuffle the order but keep the name-to-image mapping intact
+    const shuffledModels = shuffleArray(models);
+    
+    // Store in session storage for consistency across page refreshes
+    try {
+      sessionStorage.setItem('felixtell_models', JSON.stringify(shuffledModels));
+    } catch (e) {
+      console.error('Error storing models in session storage:', e);
+    }
+    
+    return shuffledModels;
+  }, [imagesLoaded, availableImages]);
+
+  // Models-Array - lädt bestehende oder generiert neue
+  const [allModels, setAllModels] = useState<{id: number, name: string, img: string}[]>([]);
+  const [modelsState, setModelsState] = useState<{id: number, name: string, img: string}[]>([]);
   const [currentModel, setCurrentModel] = useState(0);
   const [swipeDirection, setSwipeDirection] = useState<null | 'left' | 'right'>(null);
+
+  // Initialize models when images are loaded
+  useEffect(() => {
+    if (imagesLoaded && availableImages.length > 0) {
+      const initialModels = createModels();
+      setAllModels(initialModels);
+      setModelsState(initialModels);
+    }
+  }, [imagesLoaded, availableImages, createModels]);
+
+  // Fetch swiped models to filter them out
+  const fetchSwipedModels = async () => {
+    if (user) {
+      const { data: swipes, error } = await supabase
+        .from('swipes')
+        .select('model_name')
+        .eq('brand_id', user.id);
+      if (!error && swipes) {
+        const swipedNames = new Set(swipes.map((s: any) => s.model_name));
+        setModelsState(allModels.filter((m) => !swipedNames.has(m.name)));
+      }
+    } else {
+      setModelsState(allModels);
+    }
+  };
+
+  // Update the useEffect to filter out swiped models
+  useEffect(() => {
+    if (allModels.length > 0) {
+      fetchSwipedModels();
+    }
+  }, [user, allModels]);
 
   const swipeRef = useRef<HTMLDivElement>(null);
   const startX = useRef(0);
@@ -313,28 +448,6 @@ export default function Home() {
     };
 
     processPendingSwipe();
-  }, [user]);
-
-  // Make fetchSwipedModels available as a function that can be called
-  const fetchSwipedModels = async () => {
-    if (user) {
-      const { data: swipes, error } = await supabase
-        .from('swipes')
-        .select('model_name')
-        .eq('brand_id', user.id);
-      if (!error && swipes) {
-        const swipedNames = new Set(swipes.map((s: any) => s.model_name));
-        setModelsState(allModels.filter((m) => !swipedNames.has(m.name)));
-      }
-    } else {
-      setModelsState(allModels);
-    }
-  };
-
-  // Update the useEffect to use the function
-  useEffect(() => {
-    fetchSwipedModels();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const handleTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
@@ -842,32 +955,41 @@ export default function Home() {
           </div>
         )}
 
-        <div className="flex flex-col items-center mb-4" style={{position: 'relative', width: '18rem', height: '26rem'}}>
+        <div className="flex flex-col items-center mb-4" style={{position: 'relative', width: '20rem', height: '20rem'}}>
           {modelsState.length > 0 && !showBecomeModelForm && (
             <div
               ref={swipeRef}
-              className={`w-72 h-[26rem] bg-gray-100 flex flex-col items-center justify-between rounded-xl shadow-xl border border-[#E5C76B] mb-4 select-none p-6`}
+              className={`w-80 h-80 bg-white flex flex-col items-center justify-between rounded-xl shadow-xl border border-[#E5C76B] mb-4 select-none overflow-hidden`}
               style={{ transform: `translateX(${dragX}px)` }}
               onMouseDown={handleTouchStart}
               onTouchStart={handleTouchStart}
               onMouseMove={isDragging ? handleTouchMove : undefined}
               onTouchMove={isDragging ? handleTouchMove : undefined}
             >
-              <span className="text-gray-600 font-medium text-2xl mt-4">{modelsState[0]?.name}</span>
-              <div className="flex justify-center gap-10 mb-4 mt-auto">
+              {/* Display the model image - now square and full width */}
+              <div className="w-full h-full relative">
+                {modelsState[0]?.img && (
+                  <Image 
+                    src={modelsState[0].img} 
+                    alt={modelsState[0].name}
+                    fill
+                    sizes="100%"
+                    style={{ objectFit: 'cover' }}
+                    priority
+                  />
+                )}
+              </div>
+              
+              {/* Bottom action buttons overlaying the image */}
+              <div className="absolute bottom-5 w-full flex justify-center gap-14 px-4">
                 <button
-                  className="w-12 h-12 flex items-center justify-center rounded-full bg-red-100 text-red-500 text-2xl shadow-lg hover:bg-red-200 transition-all duration-300 hover:shadow-xl"
+                  className="w-16 h-16 flex items-center justify-center rounded-full bg-red-100 text-red-500 text-3xl shadow-md hover:bg-red-200 transition-all duration-300 hover:shadow-lg"
                   onClick={async (e) => {
-                    // Prevent event bubbling
                     e.preventDefault();
                     e.stopPropagation();
-                    
-                    // Early return if already processing
                     if (isProcessingSwipe || processingSwipeRef.current) {
-                      console.log('Button click - Already processing a swipe');
                       return;
                     }
-                    
                     await recordSwipe(modelsState[0]?.name, 'left');
                   }}
                   aria-label="Dislike"
@@ -875,18 +997,13 @@ export default function Home() {
                   &#10006;
                 </button>
                 <button
-                  className="w-12 h-12 flex items-center justify-center rounded-full bg-green-100 text-green-500 text-2xl shadow-lg hover:bg-green-200 transition-all duration-300 hover:shadow-xl"
+                  className="w-16 h-16 flex items-center justify-center rounded-full bg-green-100 text-green-500 text-3xl shadow-md hover:bg-green-200 transition-all duration-300 hover:shadow-lg"
                   onClick={async (e) => {
-                    // Prevent event bubbling
                     e.preventDefault();
                     e.stopPropagation();
-                    
-                    // Early return if already processing
                     if (isProcessingSwipe || processingSwipeRef.current) {
-                      console.log('Button click - Already processing a swipe');
                       return;
                     }
-                    
                     await recordSwipe(modelsState[0]?.name, 'right');
                   }}
                   aria-label="Like"
@@ -898,7 +1015,7 @@ export default function Home() {
           )}
           
           {modelsState.length === 0 && (
-            <div className="w-72 h-[26rem] bg-gray-100 flex flex-col items-center justify-center rounded-xl shadow-xl border border-[#E5C76B] mb-4 p-6">
+            <div className="w-80 h-80 bg-white flex flex-col items-center justify-center rounded-xl shadow-xl border border-[#E5C76B] mb-4 p-6">
               <p className="text-gray-500 text-center">No more models to display</p>
               <p className="text-gray-400 text-sm text-center mt-2">Check back later for more</p>
             </div>
