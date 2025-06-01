@@ -724,7 +724,7 @@ const recordSwipe = async (modelName: string, direction: string) => {
   }
 
   return (
-    <>
+    <div className="overflow-x-hidden">
       {showSplash && (
         <div
           style={{
@@ -1127,7 +1127,7 @@ const recordSwipe = async (modelName: string, direction: string) => {
 
         {showBecomeModelForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full">
+            <div className="bg-white rounded-xl shadow-xl border border-[#E5C76B] w-full max-w-md p-4 sm:p-8 mx-2 box-border">
               <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold mb-4">Become a Model</h2>
                 <button 
@@ -1225,8 +1225,7 @@ const recordSwipe = async (modelName: string, direction: string) => {
 
         {showBrandForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-xl border border-[#E5C76B] w-full sm:max-w-md p-4 sm:p-8 mx-2 box-border"
-                 style={{ maxWidth: 'calc(100vw - 1rem)' }}>
+            <div className="bg-white rounded-xl shadow-xl border border-[#E5C76B] w-full max-w-md p-4 sm:p-8 mx-2 box-border">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold">{authMode === 'login' ? 'Brand Login' : 'Brand Signup'}</h2>
                 <button 
@@ -1445,6 +1444,6 @@ const recordSwipe = async (modelName: string, direction: string) => {
           </Link>
         </div>
     </div>
-    </>
+    </div>
   );
 }
