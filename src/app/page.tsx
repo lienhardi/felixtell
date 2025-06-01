@@ -261,7 +261,7 @@ const recordSwipe = async (modelName: string, direction: string) => {
   processingSwipeRef.current = true;
 
   try {
-    if (!user) {
+      if (!user) {
       // Guest user
       if (direction === 'right') {
         if (!showBrandFormRequested) {
@@ -269,7 +269,7 @@ const recordSwipe = async (modelName: string, direction: string) => {
           setAuthMode('login');
           setAuthSuccess('');
           setAuthError('');
-          setShowBrandForm(true);
+        setShowBrandForm(true);
         }
       } else { // Left swipe for guest
         setSwipeDirection(null); // Reset visual swipe direction
@@ -302,17 +302,17 @@ const recordSwipe = async (modelName: string, direction: string) => {
 
     if (!existingSwipes || existingSwipes.length === 0) {
       const imageName = modelsState[0]?.img || '';
-      const { error } = await supabase
-        .from('swipes')
-        .insert({
-          brand_id: user.id,
+        const { error } = await supabase
+          .from('swipes')
+          .insert({
+            brand_id: user.id,
           model_name: modelName,
           direction,
           image_name: imageName
-        });
+          });
 
-      if (error) {
-        console.error('Error saving swipe:', error);
+        if (error) {
+          console.error('Error saving swipe:', error);
       } else {
         console.log(`Successfully recorded ${direction} swipe for ${modelName}`);
         if (direction === 'right') {
@@ -325,11 +325,11 @@ const recordSwipe = async (modelName: string, direction: string) => {
       }
     } else {
       console.log(`Swipe already exists for ${modelName} by this user - preventing duplicate`);
-    }
+      }
 
     // UI update for logged-in user (model removal will be handled by handleTouchEnd or button click)
-    setDragX(0);
-    setSwipeDirection(null);
+      setDragX(0);
+      setSwipeDirection(null);
 
   } catch (err) {
     console.error('Error in recordSwipe:', err);
@@ -990,8 +990,8 @@ const recordSwipe = async (modelName: string, direction: string) => {
                     if (user && !showBrandForm) {
                       setDragX(-window.innerWidth);
                       setTimeout(() => {
-                        setModelsState((prev) => prev.slice(1));
-                        setDragX(0);
+                    setModelsState((prev) => prev.slice(1));
+                    setDragX(0);
                       }, 250);
                     }
                   }}
@@ -1225,8 +1225,7 @@ const recordSwipe = async (modelName: string, direction: string) => {
 
         {showBrandForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-8 rounded-xl shadow-xl border border-[#E5C76B] max-w-md w-full"
-                 style={{ maxWidth: '95vw', width: '100%' }}>
+            <div className="bg-white rounded-xl shadow-xl border border-[#E5C76B] w-full max-w-full sm:max-w-md p-4 sm:p-8">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold">{authMode === 'login' ? 'Brand Login' : 'Brand Signup'}</h2>
                 <button 
