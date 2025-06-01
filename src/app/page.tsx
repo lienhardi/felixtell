@@ -55,10 +55,17 @@ export default function Home() {
   const [isProcessingSwipe, setIsProcessingSwipe] = useState(false);
   const processingSwipeRef = useRef(false);
   const swipeLockRef = useRef(false);
+  const swipeHandledRef = useRef(false);
 
   // State for available images
   const [availableImages, setAvailableImages] = useState<string[]>([]);
   const [imagesLoaded, setImagesLoaded] = useState(false);
+
+  // cancelledPendingSwipe als number statt boolean:
+  const [cancelledPendingSwipe, setCancelledPendingSwipe] = useState(0);
+
+  // State for showBrandFormRequested
+  const [showBrandFormRequested, setShowBrandFormRequested] = useState(false);
 
   // Helper function to shuffle an array (Fisher-Yates algorithm)
   const shuffleArray = <T extends unknown>(array: T[]): T[] => {
@@ -236,136 +243,157 @@ export default function Home() {
   };
 
   // Centralize swipe recording to prevent duplicates
-  const recordSwipe = async (modelName: string, direction: string) => {
-    if (processingSwipeRef.current) {
-      console.log('Preventing duplicate swipe processing');
-      return;
+const recordSwipe = async (modelName: string, direction: string) => {
+  console.log('[recordSwipe] called', {modelName, direction, user, showBrandForm, isProcessingSwipe, processingSwipeRef: processingSwipeRef.current, modelsState: modelsState.map(m=>m.name)});
+  
+  // Combined check for existing processing or brand form open
+  if (processingSwipeRef.current || (showBrandForm && user)) { // Allow if showBrandForm is true but user is null (initial swipe)
+    console.log('Preventing duplicate swipe processing or form is open inappropriately', {isProcessingSwipe, processingSwipeRef: processingSwipeRef.current, cancelledPendingSwipe, showBrandForm, user});
+    // Ensure flags are reset if we exit early due to form being open with a user
+    if (showBrandForm && user) {
+        setIsProcessingSwipe(false);
+        processingSwipeRef.current = false;
     }
+    return;
+  }
 
-    setIsProcessingSwipe(true);
-    processingSwipeRef.current = true;
+  setIsProcessingSwipe(true);
+  processingSwipeRef.current = true;
 
-    try {
-      if (!user) {
-        if (direction === 'right') {
-          const pendingSwipe = { model_name: modelName, direction };
-          localStorage.setItem('pendingSwipe', JSON.stringify(pendingSwipe));
+  try {
+    if (!user) {
+      // Guest user
+      if (direction === 'right') {
+        if (!showBrandFormRequested) {
+          setShowBrandFormRequested(true);
           setAuthMode('login');
           setAuthSuccess('');
           setAuthError('');
           setShowBrandForm(true);
-          setDragX(0);
-          setSwipeDirection(null);
-          return;
-        } else {
-          // Linkswipe als unangemeldeter User: Model lokal entfernen und im LocalStorage merken
-          setModelsState((prev) => prev.slice(1));
-          setDragX(0);
-          setSwipeDirection(null);
-          // Speichere den Linkswipe im LocalStorage
-          const pendingLeftSwipes = JSON.parse(localStorage.getItem('pendingLeftSwipes') || '[]');
-          pendingLeftSwipes.push({ model_name: modelName, image_name: modelsState[0]?.img || '' });
-          localStorage.setItem('pendingLeftSwipes', JSON.stringify(pendingLeftSwipes));
-          return;
         }
-      } else {
-        // First check if this swipe already exists to avoid duplicates
-        const { data: existingSwipes } = await supabase
-          .from('swipes')
-          .select('id')
-          .eq('brand_id', user.id)
-          .eq('model_name', modelName)
-          .eq('direction', direction);
-
-        // Only insert if no matching swipe exists
-        if (!existingSwipes || existingSwipes.length === 0) {
-          const imageName = modelsState[0]?.img || '';
-          const { error } = await supabase
-            .from('swipes')
-            .insert({
-              brand_id: user.id,
-              model_name: modelName,
-              direction,
-              image_name: imageName
-            });
-
-          if (error) {
-            console.error('Error saving swipe:', error);
-          } else {
-            console.log(`Successfully recorded ${direction} swipe for ${modelName}`);
-
-            // Send email only for right swipes that were successfully recorded
-            if (direction === 'right') {
-              await sendEmail(
-                'family@felixtell.com',
-                'New Match',
-                `Brand ${user.email} matched with model ${modelName}\nImage: ${imageName}\nDirektlink: https://felixtell.com${imageName}`
-              );
-            }
-          }
-        } else {
-          console.log(`Swipe already exists for ${modelName} - preventing duplicate`);
-        }
-
-        // Prepare for the next model card - but avoid UI flicker
-        // First prepare the next model without removing this one
-        const nextModels = [...modelsState];
-        nextModels.shift(); // Remove the first model
-        
-        // Update UI when logged in - with a smooth transition
-        setDragX(0);
-        setSwipeDirection(null);
-        
-        // Don't set justRemoved - it causes the flicker
-        // Instead, directly update the models state
-        setModelsState(nextModels);
+      } else { // Left swipe for guest
+        setSwipeDirection(null); // Reset visual swipe direction
+        const pendingLeftSwipes = JSON.parse(localStorage.getItem('pendingLeftSwipes') || '[]');
+        pendingLeftSwipes.push({ model_name: modelName, image_name: modelsState[0]?.img || '' });
+        localStorage.setItem('pendingLeftSwipes', JSON.stringify(pendingLeftSwipes));
       }
-    } catch (err) {
-      console.error('Error in recordSwipe:', err);
-    } finally {
-      // Reset processing flags after a delay (reduced to avoid UI pauses)
+      // For guest swipes, we usually finish processing here.
+      // The main 'finally' block might not be hit if we return early.
+      // Reset processing flags for guests, as no further async DB operation is awaited here.
+      // Delay slightly to allow UI to update before another swipe is possible
       setTimeout(() => {
         setIsProcessingSwipe(false);
         processingSwipeRef.current = false;
-        console.log('Swipe processing completed, allowing new swipes');
-      }, 500);  // Reduced from 1000ms to 500ms
+      }, 100); // Small delay
+      return; 
     }
+
+    // Logged-in user logic from here
+    // First check if this swipe already exists to avoid duplicates
+    const { data: existingSwipes } = await supabase
+      .from('swipes')
+      .select('id')
+      .eq('brand_id', user.id)
+      .eq('model_name', modelName)
+      // Removed .eq('direction', direction) to prevent double-swiping same model in general
+      // If you want to allow swiping left then right on same model, keep the direction filter.
+      // For now, one swipe per model by a brand.
+      ;
+
+    if (!existingSwipes || existingSwipes.length === 0) {
+      const imageName = modelsState[0]?.img || '';
+      const { error } = await supabase
+        .from('swipes')
+        .insert({
+          brand_id: user.id,
+          model_name: modelName,
+          direction,
+          image_name: imageName
+        });
+
+      if (error) {
+        console.error('Error saving swipe:', error);
+      } else {
+        console.log(`Successfully recorded ${direction} swipe for ${modelName}`);
+        if (direction === 'right') {
+          await sendEmail(
+            'family@felixtell.com',
+            'New Match',
+            `Brand ${user.email} matched with model ${modelName}\nImage: ${imageName}\nDirektlink: https://felixtell.com${imageName}`
+          );
+        }
+      }
+    } else {
+      console.log(`Swipe already exists for ${modelName} by this user - preventing duplicate`);
+    }
+
+    // UI update for logged-in user (model removal will be handled by handleTouchEnd or button click)
+    setDragX(0);
+    setSwipeDirection(null);
+
+  } catch (err) {
+    console.error('Error in recordSwipe:', err);
+  } finally {
+    // Reset processing flags after a delay
+    // This finally block will now primarily serve logged-in users due to early returns for guests
+    if (user) {
+      setTimeout(() => {
+        setIsProcessingSwipe(false);
+        processingSwipeRef.current = false;
+        console.log('Swipe processing completed for logged-in user, allowing new swipes');
+      }, 500);
+    }
+  }
+};
+
+  const handleTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
+    isSwiping.current = true;
+    const currentX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+    setIsDragging(true); // Dragging beginnt mit MouseDown/Tap
+    startX.current = currentX;
+    console.log('handleTouchStart', { currentX, startX: startX.current });
   };
 
-  // Update handleTouchEnd to use the centralized function
+  const handleTouchMove = (e: React.TouchEvent | React.MouseEvent) => {
+    if (!isDragging) return;
+    const currentX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+    let diff = currentX - startX.current;
+    const max = window.innerWidth;
+    if (diff > max) diff = max;
+    if (diff < -max) diff = -max;
+    console.log('handleTouchMove', { diff, dragX, isDragging, currentX, startX: startX.current });
+    setDragX(diff);
+  };
+
   const handleTouchEnd = async (e: React.TouchEvent | React.MouseEvent) => {
-    if (!isSwiping.current) return;
-    // Prevent double event firing
-    if (swipeLockRef.current) return;
-    swipeLockRef.current = true;
-    setTimeout(() => { swipeLockRef.current = false; }, 1000);
-    e.preventDefault();
-    if ('stopPropagation' in e) e.stopPropagation();
+    if (swipeHandledRef.current) return;
+    swipeHandledRef.current = true;
+    console.log('[handleTouchEnd]', {isDragging, isSwiping: isSwiping.current, modelsState: modelsState.map(m=>m.name), showBrandForm});
     setIsDragging(false);
-    if (isProcessingSwipe || processingSwipeRef.current) {
-      console.log('Touch end - Already processing a swipe');
-      return;
-    }
+    isSwiping.current = false;
     const endX = 'changedTouches' in e ? e.changedTouches[0].clientX : (e as React.MouseEvent).clientX;
     const diff = endX - startX.current;
-    if (diff > 60 || diff < -60) {
-      const direction = diff > 60 ? 'right' : 'left';
-      await recordSwipe(modelsState[0]?.name, direction);
+    if (Math.abs(diff) > 60) {
+      const direction = diff > 0 ? 'right' : 'left';
+      setDragX(direction === 'right' ? window.innerWidth : -window.innerWidth);
+      setTimeout(async () => {
+        await recordSwipe(modelsState[0]?.name, direction);
+        if (user && !showBrandForm) setModelsState((prev) => prev.slice(1));
+        setDragX(0);
+        setTimeout(() => { swipeHandledRef.current = false; }, 300);
+      }, 250);
     } else {
       setDragX(0);
+      setTimeout(() => { swipeHandledRef.current = false; }, 300);
     }
-    isSwiping.current = false;
   };
 
-  // Update handleUp to use centralized function
   const handleUp = async (e: MouseEvent | TouchEvent) => {
-    if (!isSwiping.current) return;
-    // Prevent double event firing
-    if (swipeLockRef.current) return;
-    swipeLockRef.current = true;
-    setTimeout(() => { swipeLockRef.current = false; }, 1000);
-    e.preventDefault();
-    if ('stopPropagation' in e) e.stopPropagation();
+    if (swipeHandledRef.current) return;
+    swipeHandledRef.current = true;
+    console.log('[handleUp]', {isDragging, isSwiping: isSwiping.current, modelsState: modelsState.map(m=>m.name), showBrandForm});
+    setIsDragging(false);
+    isSwiping.current = false;
     let clientX = 0;
     if ('changedTouches' in e && e.changedTouches.length > 0) {
       clientX = e.changedTouches[0].clientX;
@@ -373,104 +401,37 @@ export default function Home() {
       clientX = (e as MouseEvent).clientX;
     }
     const diff = clientX - startX.current;
-    setIsDragging(false);
-    if (isProcessingSwipe || processingSwipeRef.current) {
-      console.log('Handle up - Already processing a swipe');
-      return;
-    }
-    if (diff > 60 || diff < -60) {
-      const direction = diff > 60 ? 'right' : 'left';
-      await recordSwipe(modelsState[0]?.name, direction);
+    if (Math.abs(diff) > 60) {
+      const direction = diff > 0 ? 'right' : 'left';
+      setDragX(direction === 'right' ? window.innerWidth : -window.innerWidth);
+      setTimeout(async () => {
+        await recordSwipe(modelsState[0]?.name, direction);
+        if (user && !showBrandForm) setModelsState((prev) => prev.slice(1));
+        setDragX(0);
+        setTimeout(() => { swipeHandledRef.current = false; }, 300);
+      }, 250);
     } else {
       setDragX(0);
+      setTimeout(() => { swipeHandledRef.current = false; }, 300);
     }
-    isSwiping.current = false;
   };
 
   // Update the processPendingSwipe function
   useEffect(() => {
-    const processPendingSwipe = async () => {
-      if (user) {
-        // 1. Übertrage alle gespeicherten Linksswipes
-        const pendingLeftSwipes = JSON.parse(localStorage.getItem('pendingLeftSwipes') || '[]');
-        if (pendingLeftSwipes.length > 0) {
-          for (const swipe of pendingLeftSwipes) {
-            // Prüfe, ob schon existiert
-            const { data: existing } = await supabase
-              .from('swipes')
-              .select('id')
-              .eq('brand_id', user.id)
-              .eq('model_name', swipe.model_name)
-              .eq('direction', 'left');
-            if (!existing || existing.length === 0) {
-              await supabase.from('swipes').insert({
-                brand_id: user.id,
-                model_name: swipe.model_name,
-                direction: 'left',
-                image_name: swipe.image_name || ''
-              });
-            }
-          }
-          localStorage.removeItem('pendingLeftSwipes');
-          await fetchSwipedModels();
-        }
-        // ... bestehende processPendingSwipe-Logik ...
-        const pendingSwipeStr = localStorage.getItem('pendingSwipe');
-        if (pendingSwipeStr && !isProcessingSwipe && !processingSwipeRef.current) {
-          try {
-            setIsProcessingSwipe(true);
-            processingSwipeRef.current = true;
-            const pendingSwipe = JSON.parse(pendingSwipeStr);
-            const imageName = modelsState[0]?.img || '';
-            const { data: existingSwipes } = await supabase
-              .from('swipes')
-              .select('id')
-              .eq('brand_id', user.id)
-              .eq('model_name', pendingSwipe.model_name)
-              .eq('direction', pendingSwipe.direction);
-            if (!existingSwipes || existingSwipes.length === 0) {
-              const { error } = await supabase
-                .from('swipes')
-                .insert({
-                  brand_id: user.id,
-                  model_name: pendingSwipe.model_name,
-                  direction: pendingSwipe.direction,
-                  image_name: imageName
-                });
-              if (error) {
-                console.error('Error saving pending swipe:', error);
-              } else {
-                if (pendingSwipe.direction === 'right') {
-                  await sendEmail(
-                    'family@felixtell.com',
-                    'New Match',
-                    `Brand ${user.email} matched with model ${pendingSwipe.model_name}\nImage: ${imageName}\nDirektlink: https://felixtell.com${imageName}`
-                  );
-                }
-                console.log('Successfully processed pending swipe');
-              }
-            }
-            localStorage.removeItem('pendingSwipe');
-            await fetchSwipedModels();
-          } catch (err) {
-            console.error('Error processing pending swipe:', err);
-          } finally {
-            setTimeout(() => {
-              setIsProcessingSwipe(false);
-              processingSwipeRef.current = false;
-            }, 1000);
-          }
-        }
+    if (!user) return; // Nur für eingeloggte User!
+    if (showBrandForm || showBrandFormRequested) return;
+    const pendingSwipeStr = localStorage.getItem('pendingSwipe');
+    if (!pendingSwipeStr) return;
+    try {
+      const pendingSwipe = JSON.parse(pendingSwipeStr);
+      if (pendingSwipe && pendingSwipe.model_name && pendingSwipe.direction) {
+        recordSwipe(pendingSwipe.model_name, pendingSwipe.direction);
+        localStorage.removeItem('pendingSwipe');
       }
-    };
-    processPendingSwipe();
-  }, [user]);
-
-  const handleTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
-    isSwiping.current = true;
-    setIsDragging(true);
-    startX.current = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
-  };
+    } catch (e) {
+      localStorage.removeItem('pendingSwipe');
+    }
+  }, [user, showBrandForm, showBrandFormRequested]);
 
   const openContactForm = () => {
     setShowContactForm(true);
@@ -533,10 +494,10 @@ export default function Home() {
         
         // Zurücksetzen nach 3 Sekunden
         setTimeout(() => {
-          setContactEmail('');
+      setContactEmail('');
           setContactMessage('');
           setContactSuccess(false);
-          setShowContactForm(false);
+      setShowContactForm(false);
         }, 3000);
       }
     }
@@ -610,14 +571,6 @@ export default function Home() {
     }
   };
 
-  // handleTouchMove wieder aktivieren:
-  const handleTouchMove = (e: React.TouchEvent | React.MouseEvent) => {
-    if (!isSwiping.current) return;
-    const currentX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
-    const diff = currentX - startX.current;
-    setDragX(diff);
-  };
-
   // Supabase Auth
   useEffect(() => {
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -627,17 +580,24 @@ export default function Home() {
     return () => { listener?.subscription.unsubscribe(); };
   }, []);
 
+  // Bereinige pendingSwipe, wenn kein User eingeloggt ist
+  useEffect(() => {
+    if (!user) {
+      localStorage.removeItem('pendingSwipe');
+    }
+  }, [user]);
+
   // Funktion zum Abrufen der abgelehnten Models (Linksswipes)
   const fetchRejectedModels = async () => {
     if (!user) return;
     
     const { data, error } = await supabase
-      .from('swipes')
+            .from('swipes')
       .select('id, model_name')
       .eq('brand_id', user.id)
       .eq('direction', 'left');
-    
-    if (error) {
+
+          if (error) {
       console.error('Error fetching rejected models:', error);
       return;
     }
@@ -656,7 +616,7 @@ export default function Home() {
     
     // Lösche den Swipe aus der Datenbank
     const { error } = await supabase
-      .from('swipes')
+          .from('swipes')
       .delete()
       .eq('id', modelId);
     
@@ -728,40 +688,14 @@ export default function Home() {
     }
   };
 
-  // Restore global drag events for real swiping
+  // useEffect auf showBrandForm:
   useEffect(() => {
-    if (!isDragging) return;
-    const handleMove = (e: MouseEvent | TouchEvent) => {
-      let clientX = 0;
-      if ('touches' in e && e.touches.length > 0) {
-        clientX = e.touches[0].clientX;
-      } else if ('changedTouches' in e && e.changedTouches.length > 0) {
-        clientX = e.changedTouches[0].clientX;
-      } else if ('clientX' in e) {
-        clientX = (e as MouseEvent).clientX;
-      }
-      const diff = clientX - startX.current;
-      setDragX(diff);
-    };
-    const handleGlobalUp = (e: MouseEvent | TouchEvent) => {
-      handleUp(e);
-    };
-    const handleGlobalLeave = () => {
-      setIsDragging(false);
-    };
-    window.addEventListener('mousemove', handleMove);
-    window.addEventListener('touchmove', handleMove);
-    window.addEventListener('mouseup', handleGlobalUp);
-    window.addEventListener('touchend', handleGlobalUp);
-    window.addEventListener('mouseleave', handleGlobalLeave);
-    return () => {
-      window.removeEventListener('mousemove', handleMove);
-      window.removeEventListener('touchmove', handleMove);
-      window.removeEventListener('mouseup', handleGlobalUp);
-      window.removeEventListener('touchend', handleGlobalUp);
-      window.removeEventListener('mouseleave', handleGlobalLeave);
-    };
-  }, [isDragging]);
+    if (!showBrandForm) setShowBrandFormRequested(false);
+  }, [showBrandForm]);
+
+  if (typeof window !== 'undefined' && (window as any).felixtell_modal_blocked === undefined) {
+    (window as any).felixtell_modal_blocked = false;
+  }
 
   return (
     <>
@@ -983,11 +917,16 @@ export default function Home() {
             <div
               ref={swipeRef}
               className={`w-80 h-80 bg-white flex flex-col items-center justify-between rounded-xl shadow-xl border border-[#E5C76B] mb-4 select-none overflow-hidden`}
-              style={{ transform: `translateX(${dragX}px)` }}
+              style={{
+                transform: `translateX(${dragX}px)`,
+                transition: isDragging ? 'none' : 'transform 0.25s cubic-bezier(0.4,0,0.2,1)'
+              }}
               onMouseDown={handleTouchStart}
               onTouchStart={handleTouchStart}
-              onMouseMove={isDragging ? handleTouchMove : undefined}
-              onTouchMove={isDragging ? handleTouchMove : undefined}
+              onMouseMove={handleTouchMove}
+              onTouchMove={handleTouchMove}
+              onMouseUp={handleTouchEnd}
+              onTouchEnd={handleTouchEnd}
             >
               {/* Display the model image - now square and full width */}
               <div className="w-full h-full relative">
@@ -997,7 +936,7 @@ export default function Home() {
                     alt={modelsState[0].name}
                     fill
                     sizes="100%"
-                    style={{ objectFit: 'cover' }}
+                    style={{ objectFit: 'cover', pointerEvents: 'none' }}
                     priority
                   />
                 )}
@@ -1008,12 +947,14 @@ export default function Home() {
                 <button
                   className="w-16 h-16 flex items-center justify-center rounded-full bg-red-100 text-red-500 text-3xl shadow-md hover:bg-red-200 transition-all duration-300 hover:shadow-lg"
                   onClick={async (e) => {
+                    console.log('[Button-Dislike] click', {isProcessingSwipe, processingSwipeRef: processingSwipeRef.current, showBrandForm, modelsState: modelsState.map(m=>m.name)});
                     e.preventDefault();
                     e.stopPropagation();
-                    if (isProcessingSwipe || processingSwipeRef.current) {
+                    if (isProcessingSwipe || processingSwipeRef.current || showBrandForm) {
                       return;
                     }
                     await recordSwipe(modelsState[0]?.name, 'left');
+                    if (user && !showBrandForm) setModelsState((prev) => prev.slice(1));
                   }}
                   aria-label="Dislike"
                 >
@@ -1022,12 +963,14 @@ export default function Home() {
                 <button
                   className="w-16 h-16 flex items-center justify-center rounded-full bg-green-100 text-green-500 text-3xl shadow-md hover:bg-green-200 transition-all duration-300 hover:shadow-lg"
                   onClick={async (e) => {
+                    console.log('[Button-Like] click', {isProcessingSwipe, processingSwipeRef: processingSwipeRef.current, showBrandForm, modelsState: modelsState.map(m=>m.name)});
                     e.preventDefault();
                     e.stopPropagation();
-                    if (isProcessingSwipe || processingSwipeRef.current) {
+                    if (isProcessingSwipe || processingSwipeRef.current || showBrandForm) {
                       return;
                     }
                     await recordSwipe(modelsState[0]?.name, 'right');
+                    if (user && !showBrandForm) setModelsState((prev) => prev.slice(1));
                   }}
                   aria-label="Like"
                 >
@@ -1090,7 +1033,7 @@ export default function Home() {
                         setTimeout(() => {
                           setContactMessage('');
                           setContactSuccess(false);
-                          setShowContactForm(false);
+                      setShowContactForm(false);
                         }, 3000);
                       }
                     }
@@ -1147,7 +1090,7 @@ export default function Home() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold mb-4">Become a Model</h2>
+              <h2 className="text-2xl font-bold mb-4">Become a Model</h2>
                 <button 
                   className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300"
                   onClick={() => setShowBecomeModelForm(false)}
@@ -1252,6 +1195,8 @@ export default function Home() {
                     setShowBrandForm(false);
                     setAuthSuccess('');
                     setAuthError('');
+                    localStorage.removeItem('pendingSwipe');
+                    setShowBrandFormRequested(false);
                   }}
                 >
                   ×
@@ -1263,25 +1208,25 @@ export default function Home() {
                   <form onSubmit={handleAuth} className="w-full flex flex-col gap-4">
                     <div>
                       <label className="block mb-1 text-sm font-medium text-gray-700">Email</label>
-                      <input
-                        type="email"
+                    <input
+                      type="email"
                         placeholder="Your email address"
                         className="w-full p-3 border border-gray-300 rounded-lg focus:ring-[var(--gold)] focus:border-[var(--gold)] outline-none transition"
-                        value={authEmail}
-                        onChange={e => setAuthEmail(e.target.value)}
-                        required
-                      />
+                      value={authEmail}
+                      onChange={e => setAuthEmail(e.target.value)}
+                      required
+                    />
                     </div>
                     <div>
                       <label className="block mb-1 text-sm font-medium text-gray-700">Password</label>
-                      <input
-                        type="password"
+                    <input
+                      type="password"
                         placeholder="Your password"
                         className="w-full p-3 border border-gray-300 rounded-lg focus:ring-[var(--gold)] focus:border-[var(--gold)] outline-none transition"
-                        value={authPassword}
-                        onChange={e => setAuthPassword(e.target.value)}
-                        required
-                      />
+                      value={authPassword}
+                      onChange={e => setAuthPassword(e.target.value)}
+                      required
+                    />
                     </div>
                     
                     {authError && (
@@ -1328,8 +1273,8 @@ export default function Home() {
                     <div className="flex-1 h-px bg-gray-300"></div>
                   </div>
                   
-                  <button
-                    type="button"
+                    <button
+                      type="button"
                     className="w-full py-3 rounded-lg border border-[var(--gold)] bg-white text-[var(--gold)] font-medium transition hover:bg-[var(--gold)] hover:text-white focus:outline-none"
                     onClick={() => {
                       setAuthMode(authMode === 'login' ? 'signup' : 'login');
@@ -1338,7 +1283,7 @@ export default function Home() {
                     }}
                   >
                     {authMode === 'login' ? 'New brand? Create account' : 'Already have an account? Login'}
-                  </button>
+                    </button>
                 </>
               ) : (
                 <>
