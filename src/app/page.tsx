@@ -237,30 +237,37 @@ export default function Home() {
 
   // Centralize swipe recording to prevent duplicates
   const recordSwipe = async (modelName: string, direction: string) => {
-    // If already processing a swipe, don't allow another
     if (processingSwipeRef.current) {
       console.log('Preventing duplicate swipe processing');
       return;
     }
 
-    // Mark as processing using both state and ref
     setIsProcessingSwipe(true);
     processingSwipeRef.current = true;
 
     try {
       if (!user) {
-        // Store pending swipe for after login
-        const pendingSwipe = { model_name: modelName, direction };
-        localStorage.setItem('pendingSwipe', JSON.stringify(pendingSwipe));
-        setAuthMode('login');
-        setAuthSuccess('');
-        setAuthError('');
-        setShowBrandForm(true);
-        
-        // Don't remove model when not logged in - we'll handle this after login
-        // Just update UI state to prevent additional swipes on this model
-        setDragX(0);
-        setSwipeDirection(null);
+        if (direction === 'right') {
+          const pendingSwipe = { model_name: modelName, direction };
+          localStorage.setItem('pendingSwipe', JSON.stringify(pendingSwipe));
+          setAuthMode('login');
+          setAuthSuccess('');
+          setAuthError('');
+          setShowBrandForm(true);
+          setDragX(0);
+          setSwipeDirection(null);
+          return;
+        } else {
+          // Linkswipe als unangemeldeter User: Model lokal entfernen und im LocalStorage merken
+          setModelsState((prev) => prev.slice(1));
+          setDragX(0);
+          setSwipeDirection(null);
+          // Speichere den Linkswipe im LocalStorage
+          const pendingLeftSwipes = JSON.parse(localStorage.getItem('pendingLeftSwipes') || '[]');
+          pendingLeftSwipes.push({ model_name: modelName, image_name: modelsState[0]?.img || '' });
+          localStorage.setItem('pendingLeftSwipes', JSON.stringify(pendingLeftSwipes));
+          return;
+        }
       } else {
         // First check if this swipe already exists to avoid duplicates
         const { data: existingSwipes } = await supabase
@@ -272,12 +279,14 @@ export default function Home() {
 
         // Only insert if no matching swipe exists
         if (!existingSwipes || existingSwipes.length === 0) {
+          const imageName = modelsState[0]?.img || '';
           const { error } = await supabase
             .from('swipes')
             .insert({
               brand_id: user.id,
               model_name: modelName,
-              direction
+              direction,
+              image_name: imageName
             });
 
           if (error) {
@@ -290,7 +299,7 @@ export default function Home() {
               await sendEmail(
                 'family@felixtell.com',
                 'New Match',
-                `Brand ${user.email} matched with model ${modelName}`
+                `Brand ${user.email} matched with model ${modelName}\nImage: ${imageName}\nDirektlink: https://felixtell.com${imageName}`
               );
             }
           }
@@ -382,62 +391,70 @@ export default function Home() {
   useEffect(() => {
     const processPendingSwipe = async () => {
       if (user) {
+        // 1. Übertrage alle gespeicherten Linksswipes
+        const pendingLeftSwipes = JSON.parse(localStorage.getItem('pendingLeftSwipes') || '[]');
+        if (pendingLeftSwipes.length > 0) {
+          for (const swipe of pendingLeftSwipes) {
+            // Prüfe, ob schon existiert
+            const { data: existing } = await supabase
+              .from('swipes')
+              .select('id')
+              .eq('brand_id', user.id)
+              .eq('model_name', swipe.model_name)
+              .eq('direction', 'left');
+            if (!existing || existing.length === 0) {
+              await supabase.from('swipes').insert({
+                brand_id: user.id,
+                model_name: swipe.model_name,
+                direction: 'left',
+                image_name: swipe.image_name || ''
+              });
+            }
+          }
+          localStorage.removeItem('pendingLeftSwipes');
+          await fetchSwipedModels();
+        }
+        // ... bestehende processPendingSwipe-Logik ...
         const pendingSwipeStr = localStorage.getItem('pendingSwipe');
         if (pendingSwipeStr && !isProcessingSwipe && !processingSwipeRef.current) {
           try {
-            // Mark as processing to prevent duplicate handling
             setIsProcessingSwipe(true);
             processingSwipeRef.current = true;
-            
-            // Parse pending swipe data
             const pendingSwipe = JSON.parse(pendingSwipeStr);
-            console.log('Processing pending swipe for:', pendingSwipe.model_name);
-            
-            // Check if this swipe already exists
+            const imageName = modelsState[0]?.img || '';
             const { data: existingSwipes } = await supabase
               .from('swipes')
               .select('id')
               .eq('brand_id', user.id)
               .eq('model_name', pendingSwipe.model_name)
               .eq('direction', pendingSwipe.direction);
-              
-            // Only process if no existing swipe
             if (!existingSwipes || existingSwipes.length === 0) {
-              // Record the swipe in database
               const { error } = await supabase
                 .from('swipes')
                 .insert({
                   brand_id: user.id,
                   model_name: pendingSwipe.model_name,
-                  direction: pendingSwipe.direction
+                  direction: pendingSwipe.direction,
+                  image_name: imageName
                 });
-                
               if (error) {
                 console.error('Error saving pending swipe:', error);
               } else {
-                // Only send email for right swipes
                 if (pendingSwipe.direction === 'right') {
                   await sendEmail(
                     'family@felixtell.com',
                     'New Match',
-                    `Brand ${user.email} matched with model ${pendingSwipe.model_name}`
+                    `Brand ${user.email} matched with model ${pendingSwipe.model_name}\nImage: ${imageName}\nDirektlink: https://felixtell.com${imageName}`
                   );
                 }
-                
                 console.log('Successfully processed pending swipe');
               }
             }
-            
-            // Remove the pending swipe from localStorage
             localStorage.removeItem('pendingSwipe');
-            
-            // Fetch the full list of swiped models to correctly update the UI
             await fetchSwipedModels();
-            
           } catch (err) {
             console.error('Error processing pending swipe:', err);
           } finally {
-            // Reset processing state
             setTimeout(() => {
               setIsProcessingSwipe(false);
               processingSwipeRef.current = false;
@@ -446,7 +463,6 @@ export default function Home() {
         }
       }
     };
-
     processPendingSwipe();
   }, [user]);
 
@@ -727,16 +743,23 @@ export default function Home() {
       const diff = clientX - startX.current;
       setDragX(diff);
     };
-    
+    const handleGlobalUp = (e: MouseEvent | TouchEvent) => {
+      handleUp(e);
+    };
+    const handleGlobalLeave = () => {
+      setIsDragging(false);
+    };
     window.addEventListener('mousemove', handleMove);
     window.addEventListener('touchmove', handleMove);
-    window.addEventListener('mouseup', handleUp);
-    window.addEventListener('touchend', handleUp);
+    window.addEventListener('mouseup', handleGlobalUp);
+    window.addEventListener('touchend', handleGlobalUp);
+    window.addEventListener('mouseleave', handleGlobalLeave);
     return () => {
       window.removeEventListener('mousemove', handleMove);
       window.removeEventListener('touchmove', handleMove);
-      window.removeEventListener('mouseup', handleUp);
-      window.removeEventListener('touchend', handleUp);
+      window.removeEventListener('mouseup', handleGlobalUp);
+      window.removeEventListener('touchend', handleGlobalUp);
+      window.removeEventListener('mouseleave', handleGlobalLeave);
     };
   }, [isDragging]);
 
