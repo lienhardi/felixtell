@@ -378,9 +378,21 @@ const recordSwipe = async (modelName: string, direction: string) => {
       setDragX(direction === 'right' ? window.innerWidth : -window.innerWidth);
       setTimeout(async () => {
         await recordSwipe(modelsState[0]?.name, direction);
-        if (!user && direction === 'left') setModelsState((prev) => prev.slice(1));
-        if (user && !showBrandForm) setModelsState((prev) => prev.slice(1));
-        setDragX(0);
+        if (!user && direction === 'left') {
+          setDragX(-window.innerWidth);
+          setTimeout(() => {
+            setModelsState((prev) => prev.slice(1));
+            setDragX(0);
+          }, 250);
+        }
+        if (user && !showBrandForm && direction === 'left') {
+          setDragX(-window.innerWidth);
+          setTimeout(() => {
+            setModelsState((prev) => prev.slice(1));
+            setDragX(0);
+          }, 250);
+        }
+        if (user && !showBrandForm && direction !== 'left') setModelsState((prev) => prev.slice(1));
         setTimeout(() => { swipeHandledRef.current = false; }, 300);
       }, 250);
     } else {
@@ -407,9 +419,21 @@ const recordSwipe = async (modelName: string, direction: string) => {
       setDragX(direction === 'right' ? window.innerWidth : -window.innerWidth);
       setTimeout(async () => {
         await recordSwipe(modelsState[0]?.name, direction);
-        if (!user && direction === 'left') setModelsState((prev) => prev.slice(1));
-        if (user && !showBrandForm) setModelsState((prev) => prev.slice(1));
-        setDragX(0);
+        if (!user && direction === 'left') {
+          setDragX(-window.innerWidth);
+          setTimeout(() => {
+            setModelsState((prev) => prev.slice(1));
+            setDragX(0);
+          }, 250);
+        }
+        if (user && !showBrandForm && direction === 'left') {
+          setDragX(-window.innerWidth);
+          setTimeout(() => {
+            setModelsState((prev) => prev.slice(1));
+            setDragX(0);
+          }, 250);
+        }
+        if (user && !showBrandForm && direction !== 'left') setModelsState((prev) => prev.slice(1));
         setTimeout(() => { swipeHandledRef.current = false; }, 300);
       }, 250);
     } else {
@@ -956,8 +980,20 @@ const recordSwipe = async (modelName: string, direction: string) => {
                       return;
                     }
                     await recordSwipe(modelsState[0]?.name, 'left');
-                    if (!user) setModelsState((prev) => prev.slice(1));
-                    if (user && !showBrandForm) setModelsState((prev) => prev.slice(1));
+                    if (!user) {
+                      setDragX(-window.innerWidth);
+                      setTimeout(() => {
+                        setModelsState((prev) => prev.slice(1));
+                        setDragX(0);
+                      }, 250);
+                    }
+                    if (user && !showBrandForm) {
+                      setDragX(-window.innerWidth);
+                      setTimeout(() => {
+                        setModelsState((prev) => prev.slice(1));
+                        setDragX(0);
+                      }, 250);
+                    }
                   }}
                   aria-label="Dislike"
                 >
@@ -1189,7 +1225,8 @@ const recordSwipe = async (modelName: string, direction: string) => {
 
         {showBrandForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-8 rounded-xl shadow-xl border border-[#E5C76B] max-w-md w-full">
+            <div className="bg-white p-8 rounded-xl shadow-xl border border-[#E5C76B] max-w-md w-full"
+                 style={{ maxWidth: '95vw', margin: '0 auto' }}>
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold">{authMode === 'login' ? 'Brand Login' : 'Brand Signup'}</h2>
                 <button 
