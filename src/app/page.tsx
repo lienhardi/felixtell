@@ -379,6 +379,7 @@ const recordSwipe = async (modelName: string, direction: string) => {
       setTimeout(async () => {
         await recordSwipe(modelsState[0]?.name, direction);
         if (!user && direction === 'left') {
+          console.log('REMOVE MODEL: Gast, Linksswipe', {user, direction, showBrandForm});
           setDragX(-window.innerWidth);
           setTimeout(() => {
             setModelsState((prev) => prev.slice(1));
@@ -386,13 +387,17 @@ const recordSwipe = async (modelName: string, direction: string) => {
           }, 250);
         }
         if (user && !showBrandForm && direction === 'left') {
+          console.log('REMOVE MODEL: User, Linksswipe', {user, direction, showBrandForm});
           setDragX(-window.innerWidth);
           setTimeout(() => {
             setModelsState((prev) => prev.slice(1));
             setDragX(0);
           }, 250);
         }
-        if (user && !showBrandForm && direction !== 'left') setModelsState((prev) => prev.slice(1));
+        if (user && !showBrandForm && direction !== 'left') {
+          console.log('REMOVE MODEL: User, Rechtsswipe', {user, direction, showBrandForm});
+          setModelsState((prev) => prev.slice(1));
+        }
         setTimeout(() => { swipeHandledRef.current = false; }, 300);
       }, 250);
     } else {
@@ -420,6 +425,7 @@ const recordSwipe = async (modelName: string, direction: string) => {
       setTimeout(async () => {
         await recordSwipe(modelsState[0]?.name, direction);
         if (!user && direction === 'left') {
+          console.log('REMOVE MODEL: Gast, Linksswipe', {user, direction, showBrandForm});
           setDragX(-window.innerWidth);
           setTimeout(() => {
             setModelsState((prev) => prev.slice(1));
@@ -427,13 +433,17 @@ const recordSwipe = async (modelName: string, direction: string) => {
           }, 250);
         }
         if (user && !showBrandForm && direction === 'left') {
+          console.log('REMOVE MODEL: User, Linksswipe', {user, direction, showBrandForm});
           setDragX(-window.innerWidth);
           setTimeout(() => {
             setModelsState((prev) => prev.slice(1));
             setDragX(0);
           }, 250);
         }
-        if (user && !showBrandForm && direction !== 'left') setModelsState((prev) => prev.slice(1));
+        if (user && !showBrandForm && direction !== 'left') {
+          console.log('REMOVE MODEL: User, Rechtsswipe', {user, direction, showBrandForm});
+          setModelsState((prev) => prev.slice(1));
+        }
         setTimeout(() => { swipeHandledRef.current = false; }, 300);
       }, 250);
     } else {
@@ -1002,7 +1012,7 @@ const recordSwipe = async (modelName: string, direction: string) => {
                 <button
                   className="w-16 h-16 flex items-center justify-center rounded-full bg-green-100 text-green-500 text-3xl shadow-md hover:bg-green-200 transition-all duration-300 hover:shadow-lg"
                   onClick={async (e) => {
-                    console.log('[Button-Like] click', {isProcessingSwipe, processingSwipeRef: processingSwipeRef.current, showBrandForm, modelsState: modelsState.map(m=>m.name)});
+                    console.log('REMOVE MODEL: User, Button-Like', {user, showBrandForm});
                     e.preventDefault();
                     e.stopPropagation();
                     if (isProcessingSwipe || processingSwipeRef.current || showBrandForm) {
@@ -1236,6 +1246,11 @@ const recordSwipe = async (modelName: string, direction: string) => {
                     setAuthError('');
                     localStorage.removeItem('pendingSwipe');
                     setShowBrandFormRequested(false);
+                    setDragX(0);
+                    if (!user && modelsState.length === 0 && allModels.length > 0) {
+                      const missingModel = allModels.find(m => !modelsState.some(s => s.name === m.name));
+                      if (missingModel) setModelsState(prev => [missingModel, ...prev]);
+                    }
                   }}
                 >
                   ×
