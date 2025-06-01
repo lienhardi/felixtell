@@ -378,6 +378,7 @@ const recordSwipe = async (modelName: string, direction: string) => {
       setDragX(direction === 'right' ? window.innerWidth : -window.innerWidth);
       setTimeout(async () => {
         await recordSwipe(modelsState[0]?.name, direction);
+        if (!user && direction === 'left') setModelsState((prev) => prev.slice(1));
         if (user && !showBrandForm) setModelsState((prev) => prev.slice(1));
         setDragX(0);
         setTimeout(() => { swipeHandledRef.current = false; }, 300);
@@ -406,6 +407,7 @@ const recordSwipe = async (modelName: string, direction: string) => {
       setDragX(direction === 'right' ? window.innerWidth : -window.innerWidth);
       setTimeout(async () => {
         await recordSwipe(modelsState[0]?.name, direction);
+        if (!user && direction === 'left') setModelsState((prev) => prev.slice(1));
         if (user && !showBrandForm) setModelsState((prev) => prev.slice(1));
         setDragX(0);
         setTimeout(() => { swipeHandledRef.current = false; }, 300);
@@ -954,6 +956,7 @@ const recordSwipe = async (modelName: string, direction: string) => {
                       return;
                     }
                     await recordSwipe(modelsState[0]?.name, 'left');
+                    if (!user) setModelsState((prev) => prev.slice(1));
                     if (user && !showBrandForm) setModelsState((prev) => prev.slice(1));
                   }}
                   aria-label="Dislike"
