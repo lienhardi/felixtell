@@ -9,7 +9,7 @@ import fs from 'fs';
 import path from 'path';
 
 // Define the model images path
-const MODEL_IMAGES_PATH = '/models/milano 21.05.2025';
+const MODEL_IMAGES_PATH = '/models/2025-05-21';
 
 // Helper function to get a deterministic image for a model name
 const getModelImage = (modelName: string, availableImages: string[]) => {

@@ -5,7 +5,7 @@ import path from 'path';
 export async function GET() {
   try {
     // Definiere den Pfad zum Modell-Ordner
-    const modelDir = path.join(process.cwd(), 'public', 'models', 'milano 21.05.2025');
+    const modelDir = path.join(process.cwd(), 'public', 'models', '2025-05-21');
     
     // Lese alle Dateien im Verzeichnis
     const files = fs.readdirSync(modelDir);
@@ -17,7 +17,7 @@ export async function GET() {
     });
     
     // Erstelle die Bild-URLs für jedes Bild
-    const imageUrls = imageFiles.map(file => `/models/milano 21.05.2025/${file}`);
+    const imageUrls = imageFiles.map(file => `/models/2025-05-21/${file}`);
     
     // Gib die Liste zurück
     return NextResponse.json({ images: imageUrls });
