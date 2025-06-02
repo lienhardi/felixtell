@@ -323,24 +323,34 @@ export default function Home() {
 
       // Logged-in user logic from here
       // First check if this swipe already exists to avoid duplicates
-      const { data: existingSwipes } = await supabase
+      console.log('[DB INSERT DEBUG]', {
+        user,
+        userId: user.id,
+        imageName,
+        modelName,
+        direction
+      });
+      const { data: existingSwipes, error: existingError } = await supabase
         .from('swipes')
         .select('id')
         .eq('brand_id', user.id)
         .eq('image_name', imageName);
-
+      if (existingError) {
+        console.error('[DB EXISTING ERROR]', existingError);
+      }
       if (!existingSwipes || existingSwipes.length === 0) {
-        const { error } = await supabase
+        const { data: insertData, error: insertError } = await supabase
           .from('swipes')
           .insert({
             brand_id: user.id,
             model_name: modelName,
             direction,
             image_name: imageName
-          });
-
-        if (error) {
-          console.error('DB INSERT ERROR', error);
+          })
+          .select();
+        console.log('[DB INSERT RESULT]', { insertData, insertError });
+        if (insertError) {
+          console.error('DB INSERT ERROR', insertError);
         } else {
           console.log('DB INSERT OK', {modelName, direction, user});
           if (direction === 'right') {
