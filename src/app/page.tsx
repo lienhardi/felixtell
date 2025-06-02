@@ -71,6 +71,9 @@ export default function Home() {
   const globalMoveListener = useRef<((e: any) => void) | null>(null);
   const globalUpListener = useRef<((e: any) => void) | null>(null);
 
+  // PATCH: Model erst entfernen, wenn das neue Bild geladen ist
+  const [modelImageLoaded, setModelImageLoaded] = useState(true);
+
   // Helper function to shuffle an array (Fisher-Yates algorithm)
   const shuffleArray = <T extends unknown>(array: T[]): T[] => {
     const shuffled = [...array];
@@ -431,6 +434,7 @@ export default function Home() {
         await recordSwipe(modelsState[0]?.name, direction);
         if (!user && direction === 'left') {
           setDragX(-window.innerWidth);
+          setModelImageLoaded(false);
           setTimeout(() => {
             setModelsState((prev) => prev.slice(1));
             setDragX(0);
@@ -438,12 +442,14 @@ export default function Home() {
         }
         if (user && !showBrandForm && direction === 'left') {
           setDragX(-window.innerWidth);
+          setModelImageLoaded(false);
           setTimeout(() => {
             setModelsState((prev) => prev.slice(1));
             setDragX(0);
           }, 250);
         }
         if (user && !showBrandForm && direction !== 'left') {
+          setModelImageLoaded(false);
           setModelsState((prev) => prev.slice(1));
         }
         setTimeout(() => { swipeHandledRef.current = false; }, 300);
@@ -467,6 +473,7 @@ export default function Home() {
         localStorage.removeItem('pendingSwipe');
         // Nach Login: Model auch aus modelsState entfernen, wenn es vorne liegt und Rechtsswipe war
         if (pendingSwipe.direction === 'right' && modelsState.length > 0 && modelsState[0].img === pendingSwipe.image_name) {
+          setModelImageLoaded(false);
           setModelsState(prev => prev.slice(1));
         }
       }
@@ -967,14 +974,20 @@ export default function Home() {
               >
                 {/* Display the model image - now square and full width */}
                 <div className="w-full h-full relative">
+                  {!modelImageLoaded && modelsState[0]?.img && (
+                    <div style={{position:'absolute',inset:0,background:'#F0C040',zIndex:2,display:'flex',alignItems:'center',justifyContent:'center',transition:'opacity 0.2s',opacity:1}}>
+                      <svg width="64" height="64" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="30" fill="#F7E7B0" stroke="#F0C040" strokeWidth="4"/><text x="32" y="40" textAnchor="middle" fontSize="32" fill="#F0C040" fontWeight="bold">★</text></svg>
+                    </div>
+                  )}
                   {modelsState[0]?.img && (
                     <Image 
                       src={modelsState[0].img} 
                       alt={modelsState[0].name}
                       fill
                       sizes="100%"
-                      style={{ objectFit: 'cover', pointerEvents: 'none' }}
+                      style={{ objectFit: 'cover', pointerEvents: 'none', opacity: modelImageLoaded ? 1 : 0, transition: 'opacity 0.2s' }}
                       priority
+                      onLoadingComplete={() => setModelImageLoaded(true)}
                     />
                   )}
                 </div>
@@ -992,17 +1005,34 @@ export default function Home() {
                       await recordSwipe(modelsState[0]?.name, 'left');
                       if (!user) {
                         setDragX(-window.innerWidth);
-                        setTimeout(() => {
+                        setModelImageLoaded(false);
+                        // Warte auf Bild-Load
+                        const nextImg = modelsState[1]?.img;
+                        if (nextImg) {
+                          const img = new window.Image();
+                          img.src = nextImg;
+                          img.onload = () => {
+                            setModelsState((prev) => prev.slice(1));
+                            setDragX(0);
+                          };
+                        } else {
                           setModelsState((prev) => prev.slice(1));
                           setDragX(0);
-                        }, 250);
+                        }
                       }
                       if (user && !showBrandForm) {
                         setDragX(-window.innerWidth);
-                        setTimeout(() => {
+                        setModelImageLoaded(false);
+                        const nextImg = modelsState[1]?.img;
+                        if (nextImg) {
+                          const img = new window.Image();
+                          img.src = nextImg;
+                          img.onload = () => {
+                            setModelsState((prev) => prev.slice(1));
+                          };
+                        } else {
                           setModelsState((prev) => prev.slice(1));
-                          setDragX(0);
-                        }, 250);
+                        }
                       }
                     }}
                     aria-label="Dislike"
@@ -1018,7 +1048,19 @@ export default function Home() {
                         return;
                       }
                       await recordSwipe(modelsState[0]?.name, 'right');
-                      if (user && !showBrandForm) setModelsState((prev) => prev.slice(1));
+                      if (user && !showBrandForm) {
+                        setModelImageLoaded(false);
+                        const nextImg = modelsState[1]?.img;
+                        if (nextImg) {
+                          const img = new window.Image();
+                          img.src = nextImg;
+                          img.onload = () => {
+                            setModelsState((prev) => prev.slice(1));
+                          };
+                        } else {
+                          setModelsState((prev) => prev.slice(1));
+                        }
+                      }
                     }}
                     aria-label="Like"
                   >
