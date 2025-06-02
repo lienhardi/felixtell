@@ -200,8 +200,12 @@ export default function Home() {
     }
   };
 
-  // Update the useEffect to filter out swiped models
+  // PATCH: fetchSwipedModels für eingeloggte User immer aufrufen, für Gäste nur wenn modelsStateRestoredRef false ist
   useEffect(() => {
+    if (user) {
+      if (allModels.length > 0) fetchSwipedModels();
+      return;
+    }
     if (allModels.length > 0 && !modelsStateRestoredRef.current) {
       fetchSwipedModels();
     }
@@ -346,6 +350,8 @@ export default function Home() {
               `Brand ${user.email} matched with model ${modelName}\nImage: ${imageName}\nDirektlink: https://felixtell.com${imageName}`
             );
           }
+          // Nach jedem Swipe für eingeloggte User: Deck neu filtern
+          await fetchSwipedModels();
         }
       } else {
         console.log(`Swipe already exists for ${imageName} by this user - preventing duplicate`);
@@ -712,10 +718,7 @@ export default function Home() {
         const filtered = await fetchSwipedModels();
         console.log('[handleAuth] filtered after login:', filtered.map(m=>m.name), 'modelsState:', modelsState.map(m=>m.name));
         if (filtered.length === 0 && allModels.length > 0) {
-          setTimeout(() => {
-            console.log('[handleAuth] setModelsState(allModels) fallback', allModels.map(m=>m.name));
-            setModelsState(allModels);
-          }, 50);
+          // Kein Fallback mehr auf allModels, immer fetchSwipedModels nutzen
         }
       }
     } else {
@@ -764,16 +767,21 @@ export default function Home() {
     if (!showBrandForm) setShowBrandFormRequested(false);
   }, [showBrandForm]);
 
-  // PATCH: modelsState für eingeloggte User persistent machen
+  // PATCH: modelsState für eingeloggte User NICHT persistent machen, sondern immer aus DB filtern
   useEffect(() => {
     if (!user) return;
-    // Beim Wechsel von modelsState speichern
-    sessionStorage.setItem('felixtell_modelsState', JSON.stringify(modelsState));
-  }, [modelsState, user]);
+    // Entferne persistente modelsState für eingeloggte User
+    sessionStorage.removeItem('felixtell_modelsState');
+  }, [user]);
 
+  // PATCH: modelsStateRestoredRef nur für Gäste verwenden
+  // modelsStateRestoredRef wird für eingeloggte User immer auf false gesetzt
   useEffect(() => {
-    if (!user) return;
-    // Beim Mount: modelsState aus Storage wiederherstellen, falls vorhanden
+    if (user) {
+      modelsStateRestoredRef.current = false;
+      return;
+    }
+    // Nur für Gäste: modelsState aus Storage wiederherstellen
     const stored = sessionStorage.getItem('felixtell_modelsState');
     if (stored) {
       try {
@@ -786,7 +794,6 @@ export default function Home() {
       } catch {}
     }
     modelsStateRestoredRef.current = false;
-    // Fallback: normale Initialisierung
     if (allModels.length > 0) setModelsState(allModels);
   }, [user, allModels]);
 
@@ -813,7 +820,7 @@ export default function Home() {
       } catch {}
       localStorage.removeItem('pendingLeftSwipes');
       // Nach Übernahme: modelsState neu filtern
-      fetchSwipedModels();
+      await fetchSwipedModels();
     })();
   }, [user]);
 
