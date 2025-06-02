@@ -67,6 +67,10 @@ export default function Home() {
   // State for showBrandFormRequested
   const [showBrandFormRequested, setShowBrandFormRequested] = useState(false);
 
+  // Globale Listener-Refs
+  const globalMoveListener = useRef<((e: any) => void) | null>(null);
+  const globalUpListener = useRef<((e: any) => void) | null>(null);
+
   // Helper function to shuffle an array (Fisher-Yates algorithm)
   const shuffleArray = <T extends unknown>(array: T[]): T[] => {
     const shuffled = [...array];
@@ -163,6 +167,7 @@ export default function Home() {
 
   // Fetch swiped models to filter them out
   const fetchSwipedModels = async () => {
+    console.log('[fetchSwipedModels] user:', user, 'allModels:', allModels.map(m=>m.name));
     if (user) {
       const { data: swipes, error } = await supabase
         .from('swipes')
@@ -170,10 +175,18 @@ export default function Home() {
         .eq('brand_id', user.id);
       if (!error && swipes) {
         const swipedNames = new Set(swipes.map((s: any) => s.model_name));
-        setModelsState(allModels.filter((m) => !swipedNames.has(m.name)));
+        const filtered = allModels.filter((m) => !swipedNames.has(m.name));
+        console.log('[fetchSwipedModels] filtered:', filtered.map(m=>m.name));
+        setModelsState(filtered);
+        return filtered;
+      } else {
+        console.log('[fetchSwipedModels] error or no swipes, fallback to allModels');
+        setModelsState(allModels);
+        return allModels;
       }
     } else {
       setModelsState(allModels);
+      return allModels;
     }
   };
 
@@ -264,6 +277,11 @@ const recordSwipe = async (modelName: string, direction: string) => {
       if (!user) {
       // Guest user
       if (direction === 'right') {
+        // SPEICHERN: pendingSwipe für späteren Login
+        localStorage.setItem('pendingSwipe', JSON.stringify({
+          model_name: modelName,
+          direction: 'right'
+        }));
         if (!showBrandFormRequested) {
           setShowBrandFormRequested(true);
           setAuthMode('login');
@@ -302,19 +320,19 @@ const recordSwipe = async (modelName: string, direction: string) => {
 
     if (!existingSwipes || existingSwipes.length === 0) {
       const imageName = modelsState[0]?.img || '';
-        const { error } = await supabase
-          .from('swipes')
-          .insert({
-            brand_id: user.id,
+      const { error } = await supabase
+        .from('swipes')
+        .insert({
+          brand_id: user.id,
           model_name: modelName,
           direction,
           image_name: imageName
-          });
+        });
 
-        if (error) {
-          console.error('Error saving swipe:', error);
+      if (error) {
+        console.error('DB INSERT ERROR', error);
       } else {
-        console.log(`Successfully recorded ${direction} swipe for ${modelName}`);
+        console.log('DB INSERT OK', {modelName, direction, user});
         if (direction === 'right') {
           await sendEmail(
             'family@felixtell.com',
@@ -325,7 +343,7 @@ const recordSwipe = async (modelName: string, direction: string) => {
       }
     } else {
       console.log(`Swipe already exists for ${modelName} by this user - preventing duplicate`);
-      }
+    }
 
     // UI update for logged-in user (model removal will be handled by handleTouchEnd or button click)
       setDragX(0);
@@ -346,32 +364,75 @@ const recordSwipe = async (modelName: string, direction: string) => {
   }
 };
 
+  // Hilfsfunktionen zum Hinzufügen/Entfernen der globalen Listener
+  const addGlobalListeners = () => {
+    if (!globalMoveListener.current) {
+      globalMoveListener.current = (e: any) => handleTouchMove(e);
+      window.addEventListener('mousemove', globalMoveListener.current as any);
+      window.addEventListener('touchmove', globalMoveListener.current as any);
+    }
+    if (!globalUpListener.current) {
+      globalUpListener.current = (e: any) => handleTouchEnd(e);
+      window.addEventListener('mouseup', globalUpListener.current as any);
+      window.addEventListener('touchend', globalUpListener.current as any);
+    }
+  };
+  const removeGlobalListeners = () => {
+    if (globalMoveListener.current) {
+      window.removeEventListener('mousemove', globalMoveListener.current as any);
+      window.removeEventListener('touchmove', globalMoveListener.current as any);
+      globalMoveListener.current = null;
+    }
+    if (globalUpListener.current) {
+      window.removeEventListener('mouseup', globalUpListener.current as any);
+      window.removeEventListener('touchend', globalUpListener.current as any);
+      globalUpListener.current = null;
+    }
+  };
+
   const handleTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
     isSwiping.current = true;
     const currentX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
     setIsDragging(true); // Dragging beginnt mit MouseDown/Tap
     startX.current = currentX;
+    addGlobalListeners();
     console.log('handleTouchStart', { currentX, startX: startX.current });
   };
 
-  const handleTouchMove = (e: React.TouchEvent | React.MouseEvent) => {
+  const handleTouchMove = (e: React.TouchEvent | React.MouseEvent | TouchEvent | MouseEvent) => {
     if (!isDragging) return;
-    const currentX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+    let currentX = 0;
+    if ('touches' in e && e.touches && e.touches.length > 0) {
+      currentX = e.touches[0].clientX;
+    } else if ('clientX' in e) {
+      currentX = (e as MouseEvent).clientX;
+    } else {
+      return;
+    }
     let diff = currentX - startX.current;
     const max = window.innerWidth;
     if (diff > max) diff = max;
     if (diff < -max) diff = -max;
-    console.log('handleTouchMove', { diff, dragX, isDragging, currentX, startX: startX.current });
     setDragX(diff);
   };
 
-  const handleTouchEnd = async (e: React.TouchEvent | React.MouseEvent) => {
+  const handleTouchEnd = async (e: React.TouchEvent | React.MouseEvent | TouchEvent | MouseEvent) => {
+    removeGlobalListeners();
     if (swipeHandledRef.current) return;
     swipeHandledRef.current = true;
-    console.log('[handleTouchEnd]', {isDragging, isSwiping: isSwiping.current, modelsState: modelsState.map(m=>m.name), showBrandForm});
     setIsDragging(false);
     isSwiping.current = false;
-    const endX = 'changedTouches' in e ? e.changedTouches[0].clientX : (e as React.MouseEvent).clientX;
+    let endX = 0;
+    if ('changedTouches' in e && e.changedTouches && e.changedTouches.length > 0) {
+      endX = e.changedTouches[0].clientX;
+    } else if ('clientX' in e) {
+      endX = (e as MouseEvent).clientX;
+    } else {
+      // Fallback: keine Koordinate, kein Swipe
+      setDragX(0);
+      setTimeout(() => { swipeHandledRef.current = false; }, 300);
+      return;
+    }
     const diff = endX - startX.current;
     if (Math.abs(diff) > 60) {
       const direction = diff > 0 ? 'right' : 'left';
@@ -379,7 +440,6 @@ const recordSwipe = async (modelName: string, direction: string) => {
       setTimeout(async () => {
         await recordSwipe(modelsState[0]?.name, direction);
         if (!user && direction === 'left') {
-          console.log('REMOVE MODEL: Gast, Linksswipe', {user, direction, showBrandForm});
           setDragX(-window.innerWidth);
           setTimeout(() => {
             setModelsState((prev) => prev.slice(1));
@@ -387,7 +447,6 @@ const recordSwipe = async (modelName: string, direction: string) => {
           }, 250);
         }
         if (user && !showBrandForm && direction === 'left') {
-          console.log('REMOVE MODEL: User, Linksswipe', {user, direction, showBrandForm});
           setDragX(-window.innerWidth);
           setTimeout(() => {
             setModelsState((prev) => prev.slice(1));
@@ -395,53 +454,6 @@ const recordSwipe = async (modelName: string, direction: string) => {
           }, 250);
         }
         if (user && !showBrandForm && direction !== 'left') {
-          console.log('REMOVE MODEL: User, Rechtsswipe', {user, direction, showBrandForm});
-          setModelsState((prev) => prev.slice(1));
-        }
-        setTimeout(() => { swipeHandledRef.current = false; }, 300);
-      }, 250);
-    } else {
-      setDragX(0);
-      setTimeout(() => { swipeHandledRef.current = false; }, 300);
-    }
-  };
-
-  const handleUp = async (e: MouseEvent | TouchEvent) => {
-    if (swipeHandledRef.current) return;
-    swipeHandledRef.current = true;
-    console.log('[handleUp]', {isDragging, isSwiping: isSwiping.current, modelsState: modelsState.map(m=>m.name), showBrandForm});
-    setIsDragging(false);
-    isSwiping.current = false;
-    let clientX = 0;
-    if ('changedTouches' in e && e.changedTouches.length > 0) {
-      clientX = e.changedTouches[0].clientX;
-    } else if ('clientX' in e) {
-      clientX = (e as MouseEvent).clientX;
-    }
-    const diff = clientX - startX.current;
-    if (Math.abs(diff) > 60) {
-      const direction = diff > 0 ? 'right' : 'left';
-      setDragX(direction === 'right' ? window.innerWidth : -window.innerWidth);
-      setTimeout(async () => {
-        await recordSwipe(modelsState[0]?.name, direction);
-        if (!user && direction === 'left') {
-          console.log('REMOVE MODEL: Gast, Linksswipe', {user, direction, showBrandForm});
-          setDragX(-window.innerWidth);
-          setTimeout(() => {
-            setModelsState((prev) => prev.slice(1));
-            setDragX(0);
-          }, 250);
-        }
-        if (user && !showBrandForm && direction === 'left') {
-          console.log('REMOVE MODEL: User, Linksswipe', {user, direction, showBrandForm});
-          setDragX(-window.innerWidth);
-          setTimeout(() => {
-            setModelsState((prev) => prev.slice(1));
-            setDragX(0);
-          }, 250);
-        }
-        if (user && !showBrandForm && direction !== 'left') {
-          console.log('REMOVE MODEL: User, Rechtsswipe', {user, direction, showBrandForm});
           setModelsState((prev) => prev.slice(1));
         }
         setTimeout(() => { swipeHandledRef.current = false; }, 300);
@@ -682,6 +694,15 @@ const recordSwipe = async (modelName: string, direction: string) => {
         setAuthError(error.message);
       } else {
         setShowBrandForm(false);
+        console.log('[handleAuth] Login success, user:', user, 'allModels:', allModels.map(m=>m.name));
+        const filtered = await fetchSwipedModels();
+        console.log('[handleAuth] filtered after login:', filtered.map(m=>m.name), 'modelsState:', modelsState.map(m=>m.name));
+        if (filtered.length === 0 && allModels.length > 0) {
+          setTimeout(() => {
+            console.log('[handleAuth] setModelsState(allModels) fallback', allModels.map(m=>m.name));
+            setModelsState(allModels);
+          }, 50);
+        }
       }
     } else {
       try {
@@ -734,731 +755,736 @@ const recordSwipe = async (modelName: string, direction: string) => {
   }
 
   return (
-    <div className="overflow-x-hidden">
-      {showSplash && (
-        <div
-          style={{
-            position: 'fixed', inset: 0, zIndex: 50, background: '#E8DCCE',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            transition: 'opacity 0.18s',
-            opacity: showSplash ? 1 : 0
-          }}
-        >
-          <svg width="320" height="180" viewBox="0 0 320 180" style={{ display: 'block' }}>
-            <defs>
-              <linearGradient id="gold-gradient" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor="#F0C040" />
-                <stop offset="50%" stopColor="#D4AF37" />
-                <stop offset="100%" stopColor="#BFA14A" />
-              </linearGradient>
-            </defs>
-            {/* Body links bis zum linken Rand des Suchers */}
-            <path
-              d="
-                M100,140
-                Q85,140 85,120
-                L85,80
-                Q85,65 120,65
-                L135,65
-                L145,50
-                L151,50
-              "
-              stroke="url(#gold-gradient)"
-              strokeWidth="2.5"
-              fill="none"
-              strokeLinecap="round"
-              style={{
-                strokeDasharray: 180,
-                strokeDashoffset: 180,
-                animation: shouldStartAnimation ? 'drawBodyLeft 0.8s linear forwards' : 'none'
-              }}
-            />
-            {/* Body rechts ab RECHTEM Rand des Suchers, läuft deutlich weiter nach links */}
-            <path
-              d="
-                M169,50
-                L175,50
-                L185,65
-                L200,65
-                Q235,65 235,80
-                L235,120
-                Q235,140 220,140
-                L100,140
-              "
-              stroke="url(#gold-gradient)"
-              strokeWidth="2.5"
-              fill="none"
-              strokeLinecap="round"
-              style={{
-                strokeDasharray: 280,
-                strokeDashoffset: 280,
-                animation: shouldStartAnimation ? 'drawBodyRight 0.8s linear forwards' : 'none'
-              }}
-            />
-            {/* Sucher exakt zwischen Body-Segmenten */}
-            <rect
-              x="151" y="40" width="18" height="14" rx="3"
-              stroke="url(#gold-gradient)"
-              strokeWidth="2.5"
-              fill="none"
-              style={{
-                strokeDasharray: 64,
-                strokeDashoffset: 64,
-                animation: shouldStartAnimation ? 'drawFinder 0.8s linear forwards' : 'none'
-              }}
-            />
-            {/* Objektiv */}
-            <path
-              d="
-                M 178.4,81.6
-                A 26,26 0 1,1 141.6,118.4
-                A 26,26 0 1,1 178.4,81.6
-              "
-              stroke="url(#gold-gradient)"
-              strokeWidth="2.5"
-              fill="none"
-              style={{
-                strokeDasharray: 163.36,
-                strokeDashoffset: 163.36,
-                animation: shouldStartAnimation ? 'drawLens 0.8s linear forwards' : 'none'
-              }}
-            />
-            {/* Blitz */}
-            <circle
-              cx="160" cy="34" r="9"
-              fill="#fffbe6"
-              opacity="0"
-            >
-              <animate
-                attributeName="opacity"
-                from="0"
-                to="1"
-                dur="0.08s"
-                begin="0.9s"
-                fill="freeze"
+    <div style={{ position: 'relative', minHeight: '100vh', overflowX: 'hidden' }}>
+      <div className="background-stripes" />
+      <div className="flex flex-col items-center justify-center min-h-screen p-8" style={{ position: 'relative', zIndex: 1 }}>        {showSplash && (
+          <div
+            style={{
+              position: 'fixed', inset: 0, zIndex: 50, background: '#E8DCCE',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'opacity 0.18s',
+              opacity: showSplash ? 1 : 0
+            }}
+          >
+            <svg width="320" height="180" viewBox="0 0 320 180" style={{ display: 'block' }}>
+              <defs>
+                <linearGradient id="gold-gradient" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#F0C040" />
+                  <stop offset="50%" stopColor="#D4AF37" />
+                  <stop offset="100%" stopColor="#BFA14A" />
+                </linearGradient>
+              </defs>
+              {/* Body links bis zum linken Rand des Suchers */}
+              <path
+                d="
+                  M100,140
+                  Q85,140 85,120
+                  L85,80
+                  Q85,65 120,65
+                  L135,65
+                  L145,50
+                  L151,50
+                "
+                stroke="url(#gold-gradient)"
+                strokeWidth="2.5"
+                fill="none"
+                strokeLinecap="round"
+                style={{
+                  strokeDasharray: 180,
+                  strokeDashoffset: 180,
+                  animation: shouldStartAnimation ? 'drawBodyLeft 0.8s linear forwards' : 'none'
+                }}
               />
-              <animate
-                attributeName="opacity"
-                from="1"
-                to="0"
-                dur="0.25s"
-                begin="0.98s"
-                fill="freeze"
+              {/* Body rechts ab RECHTEM Rand des Suchers, läuft deutlich weiter nach links */}
+              <path
+                d="
+                  M169,50
+                  L175,50
+                  L185,65
+                  L200,65
+                  Q235,65 235,80
+                  L235,120
+                  Q235,140 220,140
+                  L100,140
+                "
+                stroke="url(#gold-gradient)"
+                strokeWidth="2.5"
+                fill="none"
+                strokeLinecap="round"
+                style={{
+                  strokeDasharray: 280,
+                  strokeDashoffset: 280,
+                  animation: shouldStartAnimation ? 'drawBodyRight 0.8s linear forwards' : 'none'
+                }}
               />
-              <animate
-                attributeName="r"
-                from="9"
-                to="18"
-                dur="0.25s"
-                begin="0.98s"
-                fill="freeze"
+              {/* Sucher exakt zwischen Body-Segmenten */}
+              <rect
+                x="151" y="40" width="18" height="14" rx="3"
+                stroke="url(#gold-gradient)"
+                strokeWidth="2.5"
+                fill="none"
+                style={{
+                  strokeDasharray: 64,
+                  strokeDashoffset: 64,
+                  animation: shouldStartAnimation ? 'drawFinder 0.8s linear forwards' : 'none'
+                }}
               />
-            </circle>
-            {/* Optional: Auslöser rechts oben */}
-            <rect
-              x="210" y="60" width="8" height="5" rx="2"
-              stroke="url(#gold-gradient)"
-              strokeWidth="2"
-              fill="none"
-              style={{
-                strokeDasharray: 20,
-                strokeDashoffset: 20,
-                animation: 'drawKnob 0.3s linear 0.8s forwards'
-              }}
-            />
-          </svg>
-          <style>
-            {`
-              @keyframes drawBodyLeft {
-                to { stroke-dashoffset: 0; }
-              }
-              @keyframes drawBodyRight {
-                to { stroke-dashoffset: 0; }
-              }
-              @keyframes drawLens {
-                to { stroke-dashoffset: 0; }
-              }
-              @keyframes drawFinder {
-                to { stroke-dashoffset: 0; }
-              }
-              @keyframes drawKnob {
-                to { stroke-dashoffset: 0; }
-              }
-            `}
-          </style>
-        </div>
-      )}
-
-      <div
-        className="flex flex-col items-center justify-center min-h-screen p-8"
-        style={{
-          background: `
-            repeating-linear-gradient(
-              135deg,
-              #E8DCCE,
-              #E8DCCE 36px,
-              #F0C040 36px,
-              #F0C040 38px,
-              #F3EBDD 38px,
-              #F3EBDD 76px
-            )
-          `
-        }}
-      >
-        <div className="flex flex-col items-center mb-10 mt-4">
-          <div className="w-full flex justify-center" style={{ minHeight: 180 }}>
-            <Image
-              src="/Felix_Tell_logo.png"
-              alt="Felix Tell Artists' Bureau 1842"
-              width={420}
-              height={180}
-              style={{ maxWidth: '100%', height: 'auto' }}
-              priority
-            />
-          </div>
-        </div>
-        <div className="elegant-divider"></div>
-        <h2 className="text-4xl sm:text-5xl elegant-heading text-black mb-2 mt-8 text-center">
-        Shine. Profit.
-        </h2>
-        <p
-          className="text-2xl sm:text-3xl"
-          style={{
-            color: "#3a2e1a",
-            lineHeight: 1.6,
-            maxWidth: 600,
-            margin: "0 auto 1.5rem auto",
-            textAlign: "center",
-            fontWeight: 500,
-            letterSpacing: "0.01em"
-          }}
-        >
-          Win-Win.
-        </p>
-        
-        {!user && (
-          <div className="w-full flex justify-center mb-9">
-            <button
-              onClick={openBrandForm}
-              className="px-8 py-4 rounded-full bg-white/90 text-[var(--gold)] border border-[var(--gold)] font-semibold text-xl shadow-lg hover:bg-[var(--gold)] hover:text-white transition-all duration-300 hover:shadow-xl"
-              style={{ minWidth: '180px', fontSize: '1.35rem' }}
-            >
-              Brand Login / Signup
-            </button>
+              {/* Objektiv */}
+              <path
+                d="
+                  M 178.4,81.6
+                  A 26,26 0 1,1 141.6,118.4
+                  A 26,26 0 1,1 178.4,81.6
+                "
+                stroke="url(#gold-gradient)"
+                strokeWidth="2.5"
+                fill="none"
+                style={{
+                  strokeDasharray: 163.36,
+                  strokeDashoffset: 163.36,
+                  animation: shouldStartAnimation ? 'drawLens 0.8s linear forwards' : 'none'
+                }}
+              />
+              {/* Blitz */}
+              <circle
+                cx="160" cy="34" r="9"
+                fill="#fffbe6"
+                opacity="0"
+              >
+                <animate
+                  attributeName="opacity"
+                  from="0"
+                  to="1"
+                  dur="0.08s"
+                  begin="0.9s"
+                  fill="freeze"
+                />
+                <animate
+                  attributeName="opacity"
+                  from="1"
+                  to="0"
+                  dur="0.25s"
+                  begin="0.98s"
+                  fill="freeze"
+                />
+                <animate
+                  attributeName="r"
+                  from="9"
+                  to="18"
+                  dur="0.25s"
+                  begin="0.98s"
+                  fill="freeze"
+                />
+              </circle>
+              {/* Optional: Auslöser rechts oben */}
+              <rect
+                x="210" y="60" width="8" height="5" rx="2"
+                stroke="url(#gold-gradient)"
+                strokeWidth="2"
+                fill="none"
+                style={{
+                  strokeDasharray: 20,
+                  strokeDashoffset: 20,
+                  animation: 'drawKnob 0.3s linear 0.8s forwards'
+                }}
+              />
+            </svg>
+            <style>
+              {`
+                @keyframes drawBodyLeft {
+                  to { stroke-dashoffset: 0; }
+                }
+                @keyframes drawBodyRight {
+                  to { stroke-dashoffset: 0; }
+                }
+                @keyframes drawLens {
+                  to { stroke-dashoffset: 0; }
+                }
+                @keyframes drawFinder {
+                  to { stroke-dashoffset: 0; }
+                }
+                @keyframes drawKnob {
+                  to { stroke-dashoffset: 0; }
+                }
+              `}
+            </style>
           </div>
         )}
-
-        <div className="flex flex-col items-center mb-4" style={{position: 'relative', width: '20rem', height: '20rem'}}>
-          {modelsState.length > 0 && !showBecomeModelForm && (
-            <div
-              ref={swipeRef}
-              className={`w-80 h-80 bg-white flex flex-col items-center justify-between rounded-xl shadow-xl border border-[#E5C76B] mb-4 select-none overflow-hidden`}
-              style={{
-                transform: `translateX(${dragX}px)`,
-                transition: isDragging ? 'none' : 'transform 0.25s cubic-bezier(0.4,0,0.2,1)'
-              }}
-              onMouseDown={handleTouchStart}
-              onTouchStart={handleTouchStart}
-              onMouseMove={handleTouchMove}
-              onTouchMove={handleTouchMove}
-              onMouseUp={handleTouchEnd}
-              onTouchEnd={handleTouchEnd}
-            >
-              {/* Display the model image - now square and full width */}
-              <div className="w-full h-full relative">
-                {modelsState[0]?.img && (
-                  <Image 
-                    src={modelsState[0].img} 
-                    alt={modelsState[0].name}
-                    fill
-                    sizes="100%"
-                    style={{ objectFit: 'cover', pointerEvents: 'none' }}
-                    priority
-                  />
-                )}
-              </div>
-              
-              {/* Bottom action buttons overlaying the image */}
-              <div className="absolute bottom-5 w-full flex justify-center gap-14 px-4">
-                <button
-                  className="w-16 h-16 flex items-center justify-center rounded-full bg-red-100 text-red-500 text-3xl shadow-md hover:bg-red-200 transition-all duration-300 hover:shadow-lg"
-                  onClick={async (e) => {
-                    console.log('[Button-Dislike] click', {isProcessingSwipe, processingSwipeRef: processingSwipeRef.current, showBrandForm, modelsState: modelsState.map(m=>m.name)});
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (isProcessingSwipe || processingSwipeRef.current || showBrandForm) {
-                      return;
-                    }
-                    await recordSwipe(modelsState[0]?.name, 'left');
-                    if (!user) {
-                      setDragX(-window.innerWidth);
-                      setTimeout(() => {
-                        setModelsState((prev) => prev.slice(1));
-                        setDragX(0);
-                      }, 250);
-                    }
-                    if (user && !showBrandForm) {
-                      setDragX(-window.innerWidth);
-                      setTimeout(() => {
-                    setModelsState((prev) => prev.slice(1));
-                    setDragX(0);
-                      }, 250);
-                    }
-                  }}
-                  aria-label="Dislike"
-                >
-                  &#10006;
-                </button>
-                <button
-                  className="w-16 h-16 flex items-center justify-center rounded-full bg-green-100 text-green-500 text-3xl shadow-md hover:bg-green-200 transition-all duration-300 hover:shadow-lg"
-                  onClick={async (e) => {
-                    console.log('REMOVE MODEL: User, Button-Like', {user, showBrandForm});
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (isProcessingSwipe || processingSwipeRef.current || showBrandForm) {
-                      return;
-                    }
-                    await recordSwipe(modelsState[0]?.name, 'right');
-                    if (user && !showBrandForm) setModelsState((prev) => prev.slice(1));
-                  }}
-                  aria-label="Like"
-                >
-                  &#10004;
-                </button>
-              </div>
+        <div className="flex flex-col items-center justify-center min-h-screen p-8">
+          <div className="flex flex-col items-center mb-10 mt-4">
+            <div className="w-full flex justify-center" style={{ minHeight: 180 }}>
+              <Image
+                src="/Felix_Tell_logo.png"
+                alt="Felix Tell Artists' Bureau 1842"
+                width={420}
+                height={180}
+                style={{ maxWidth: '100%', height: 'auto' }}
+                priority
+              />
             </div>
-          )}
+          </div>
+          <div className="elegant-divider"></div>
+          <h2 className="text-4xl sm:text-5xl elegant-heading text-black mb-2 mt-8 text-center">
+          Shine. Profit.
+          </h2>
+          <p
+            className="text-2xl sm:text-3xl"
+            style={{
+              color: "#3a2e1a",
+              lineHeight: 1.6,
+              maxWidth: 600,
+              margin: "0 auto 1.5rem auto",
+              textAlign: "center",
+              fontWeight: 500,
+              letterSpacing: "0.01em"
+            }}
+          >
+            Win-Win.
+          </p>
           
-          {modelsState.length === 0 && (
-            <div className="w-80 h-80 bg-white flex flex-col items-center justify-center rounded-xl shadow-xl border border-[#E5C76B] mb-4 p-6">
-              <p className="text-gray-500 text-center">No more models to display</p>
-              <p className="text-gray-400 text-sm text-center mt-2">Check back later for more</p>
-            </div>
-          )}
-        </div>
-
-        {!user && (
-          <>
-            <div className="flex items-center w-full justify-center mb-4">
-              <div className="w-24 h-px" style={{ background: "#cccccc" }}></div>
-              <span className="text-gray-500 text-lg font-medium mx-4">or</span>
-              <div className="w-24 h-px" style={{ background: "#cccccc" }}></div>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-6 mb-11 mt-3">
+          {!user && (
+            <div className="w-full flex justify-center mb-9">
               <button
-                className="px-10 py-4 bg-[var(--gold)] text-white rounded-full text-xl font-semibold shadow-lg hover:bg-[var(--gold-light)] hover:text-[var(--gold)] transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5"
-                onClick={openBecomeModelForm}
-                style={{ fontSize: '1.35rem', minWidth: '200px' }}
+                onClick={openBrandForm}
+                className="px-8 py-4 rounded-full bg-white/90 text-[var(--gold)] border border-[var(--gold)] font-semibold text-xl shadow-lg hover:bg-[var(--gold)] hover:text-white transition-all duration-300 hover:shadow-xl"
+                style={{ minWidth: '180px', fontSize: '1.35rem' }}
               >
-                Become a Model
+                Brand Login / Signup
               </button>
             </div>
-          </>
-        )}
+          )}
 
-        {showContactForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-8 rounded shadow max-w-md w-full">
-              <h2 className="text-2xl font-bold mb-4">Contact</h2>
-              {contactSuccess ? (
-                <div className="text-center py-8">
-                  <div className="text-green-600 text-3xl mb-2">✓</div>
-                  <p className="text-lg font-medium text-gray-800 mb-2">Message sent successfully!</p>
-                  <p className="text-gray-600">We'll get back to you as soon as possible.</p>
-                </div>
-              ) : user ? (
-                <form
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    if (contactMessage.trim()) {
-                      const success = await sendEmail(
-                        'family@felixtell.com',
-                        'Brand Contact Message',
-                        `Message from ${user.email}: ${contactMessage}`
-                      );
-                      
-                      if (success) {
-                        setContactSuccess(true);
-                        setTimeout(() => {
-                          setContactMessage('');
-                          setContactSuccess(false);
-                      setShowContactForm(false);
-                        }, 3000);
-                      }
-                    }
-                  }}
-                >
-                  <p className="mb-2 text-gray-700">
-                    We will get back to you as soon as possible at your email address.
-                  </p>
-                  <textarea
-                    className="border p-2 w-full mb-4 rounded"
-                    placeholder="Your message"
-                    value={contactMessage}
-                    onChange={(e) => setContactMessage(e.target.value)}
-                    rows={4}
-                    required
-                  />
-                  <div className="flex gap-2">
-                    <button type="submit" className="px-4 py-2 bg-[var(--gold)] text-white rounded">Send</button>
-                    <button type="button" className="px-4 py-2 bg-gray-300 text-black rounded" onClick={() => setShowContactForm(false)}>Close</button>
-                  </div>
-                </form>
-              ) : (
-                <form onSubmit={handleContactSubmit}>
-                  <p className="mb-2 text-gray-700">Please enter your email address:</p>
-                  <input
-                    type="email"
-                    className="border p-2 w-full mb-4 rounded"
-                    placeholder="Your email address"
-                    value={contactEmail}
-                    onChange={(e) => setContactEmail(e.target.value)}
-                    required
-                  />
-                  <p className="mb-2 text-gray-700">Your message:</p>
-                  <textarea
-                    className="border p-2 w-full mb-4 rounded"
-                    placeholder="How can we help you?"
-                    value={contactMessage}
-                    onChange={(e) => setContactMessage(e.target.value)}
-                    rows={4}
-                    required
-                  />
-                  <p className="text-sm text-gray-600 mb-4">We'll get back to you as soon as possible.</p>
-                  <div className="flex gap-2">
-                    <button type="submit" className="px-4 py-2 bg-[var(--gold)] text-white rounded">Send</button>
-                    <button type="button" className="px-4 py-2 bg-gray-300 text-black rounded" onClick={() => setShowContactForm(false)}>Close</button>
-                  </div>
-                </form>
-              )}
-            </div>
-          </div>
-        )}
-
-        {showBecomeModelForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-xl border border-[#E5C76B] w-full max-w-md p-4 sm:p-8 mx-2 box-border">
-              <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold mb-4">Become a Model</h2>
-                <button 
-                  className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300"
-                  onClick={() => setShowBecomeModelForm(false)}
-                >
-                  ×
-                </button>
-              </div>
-              <form onSubmit={handleBecomeModelSubmit} className="flex flex-col space-y-4">
-                <div>
-                  <label className="block text-gray-700 mb-2 font-medium">Contact information:</label>
-                  <input 
-                    type="text" 
-                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-[var(--gold)] focus:border-[var(--gold)] outline-none" 
-                    placeholder="Email address or phone number" 
-                    value={becomeModelEmail} 
-                    onChange={(e) => setBecomeModelEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-gray-700 mb-2 font-medium">Write something about yourself:</label>
-                  <textarea
-                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-[var(--gold)] focus:border-[var(--gold)] outline-none"
-                    placeholder="Tell us about yourself, experience, height, age, interests..."
-                    value={becomeModelAge} 
-                    onChange={(e) => setBecomeModelAge(e.target.value)}
-                    rows={4}
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-gray-700 mb-2 font-medium">Upload photos:</label>
-                  <div className="relative">
-                    <button
-                      type="button"
-                      className="px-4 py-2 border border-[var(--gold)] text-[var(--gold)] bg-white hover:bg-[var(--gold)] hover:text-white transition-colors rounded-lg"
-                      onClick={() => document.getElementById('model-photos')?.click()}
-                    >
-                      Select Photos
-                    </button>
-                    <input 
-                      id="model-photos" 
-                      type="file" 
-                      className="hidden" 
-                      accept="image/*" 
-                      multiple 
-                      onChange={handleFileSelect}
-                      lang="en"
+          <div className="flex flex-col items-center mb-4" style={{position: 'relative', width: '20rem', height: '20rem'}}>
+            {(() => { console.log('[RENDER] modelsState:', modelsState.map(m=>m.name), 'allModels:', allModels.map(m=>m.name), 'user:', user); return null; })()}
+            {modelsState.length > 0 && !showBecomeModelForm && (
+              <div
+                ref={swipeRef}
+                className={`w-80 h-80 bg-white flex flex-col items-center justify-between rounded-xl shadow-xl border border-[#E5C76B] mb-4 select-none overflow-hidden`}
+                style={{
+                  transform: `translateX(${dragX}px)`,
+                  transition: isDragging ? 'none' : 'transform 0.25s cubic-bezier(0.4,0,0.2,1)'
+                }}
+                onMouseDown={handleTouchStart}
+                onTouchStart={handleTouchStart}
+                onMouseMove={handleTouchMove}
+                onTouchMove={handleTouchMove}
+                onMouseUp={handleTouchEnd}
+                onTouchEnd={handleTouchEnd}
+              >
+                {/* Display the model image - now square and full width */}
+                <div className="w-full h-full relative">
+                  {modelsState[0]?.img && (
+                    <Image 
+                      src={modelsState[0].img} 
+                      alt={modelsState[0].name}
+                      fill
+                      sizes="100%"
+                      style={{ objectFit: 'cover', pointerEvents: 'none' }}
+                      priority
                     />
-                    <span className="ml-3 text-gray-500 text-sm">
-                      {fileUploadStatus || "Up to 5 photos"}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-xs text-gray-500">Please include a headshot and full body shot</p>
-                  
-                  {selectedFiles.length > 0 && (
-                    <div className="mt-3 p-2 border rounded-lg bg-gray-50">
-                      <p className="text-sm font-medium text-gray-700 mb-1">Selected files:</p>
-                      <ul className="text-xs text-gray-600">
-                        {Array.from(selectedFiles).map((file, index) => (
-                          <li key={index} className="truncate">
-                            {file.name} ({Math.round(file.size / 1024)} KB)
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
                   )}
                 </div>
-
-                <div className="flex gap-3 pt-4">
-                  <button 
-                    type="submit" 
-                    className="flex-1 py-3 bg-[var(--gold)] text-white rounded-lg hover:bg-[#D4AF37] transition-colors disabled:opacity-50"
-                    disabled={fileUploadStatus === 'Sending application...'}
+                
+                {/* Bottom action buttons overlaying the image */}
+                <div className="absolute bottom-5 w-full flex justify-center gap-14 px-4">
+                  <button
+                    className="w-16 h-16 flex items-center justify-center rounded-full bg-red-100 text-red-500 text-3xl shadow-md hover:bg-red-200 transition-all duration-300 hover:shadow-lg"
+                    onClick={async (e) => {
+                      console.log('[Button-Dislike] click', {isProcessingSwipe, processingSwipeRef: processingSwipeRef.current, showBrandForm, modelsState: modelsState.map(m=>m.name)});
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (isProcessingSwipe || processingSwipeRef.current || showBrandForm) {
+                        return;
+                      }
+                      await recordSwipe(modelsState[0]?.name, 'left');
+                      if (!user) {
+                        setDragX(-window.innerWidth);
+                        setTimeout(() => {
+                          setModelsState((prev) => prev.slice(1));
+                          setDragX(0);
+                        }, 250);
+                      }
+                      if (user && !showBrandForm) {
+                        setDragX(-window.innerWidth);
+                        setTimeout(() => {
+                      setModelsState((prev) => prev.slice(1));
+                      setDragX(0);
+                        }, 250);
+                      }
+                    }}
+                    aria-label="Dislike"
                   >
-                    {fileUploadStatus === 'Sending application...' ? 'Sending...' : 'Submit'}
+                    &#10006;
                   </button>
-                  <button 
-                    type="button" 
-                    className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors" 
-                    onClick={() => setShowBecomeModelForm(false)}
-                    disabled={fileUploadStatus === 'Sending application...'}
+                  <button
+                    className="w-16 h-16 flex items-center justify-center rounded-full bg-green-100 text-green-500 text-3xl shadow-md hover:bg-green-200 transition-all duration-300 hover:shadow-lg"
+                    onClick={async (e) => {
+                      console.log('REMOVE MODEL: User, Button-Like', {user, showBrandForm});
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (isProcessingSwipe || processingSwipeRef.current || showBrandForm) {
+                        return;
+                      }
+                      await recordSwipe(modelsState[0]?.name, 'right');
+                      if (user && !showBrandForm) setModelsState((prev) => prev.slice(1));
+                    }}
+                    aria-label="Like"
                   >
-                    Cancel
+                    &#10004;
                   </button>
                 </div>
-              </form>
-            </div>
+              </div>
+            )}
+            
+            {modelsState.length === 0 && (
+              <div className="w-80 h-80 bg-white flex flex-col items-center justify-center rounded-xl shadow-xl border border-[#E5C76B] mb-4 p-6">
+                <p className="text-gray-500 text-center">No more models to display</p>
+                <p className="text-gray-400 text-sm text-center mt-2">Check back later for more</p>
+              </div>
+            )}
           </div>
-        )}
 
-        {showBrandForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-xl border border-[#E5C76B] w-full max-w-md p-4 sm:p-8 mx-2 box-border">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold">{authMode === 'login' ? 'Brand Login' : 'Brand Signup'}</h2>
-                <button 
-                  className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300"
-                  onClick={() => {
-                    setShowBrandForm(false);
-                    setAuthSuccess('');
-                    setAuthError('');
-                    localStorage.removeItem('pendingSwipe');
-                    setShowBrandFormRequested(false);
-                    setDragX(0);
-                    if (!user && modelsState.length === 0 && allModels.length > 0) {
-                      const missingModel = allModels.find(m => !modelsState.some(s => s.name === m.name));
-                      if (missingModel) setModelsState(prev => [missingModel, ...prev]);
-                    }
-                  }}
+          {!user && (
+            <>
+              <div className="flex items-center w-full justify-center mb-4">
+                <div className="w-24 h-px" style={{ background: "#cccccc" }}></div>
+                <span className="text-gray-500 text-lg font-medium mx-4">or</span>
+                <div className="w-24 h-px" style={{ background: "#cccccc" }}></div>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-6 mb-11 mt-3">
+                <button
+                  className="px-10 py-4 bg-[var(--gold)] text-white rounded-full text-xl font-semibold shadow-lg hover:bg-[var(--gold-light)] hover:text-[var(--gold)] transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5"
+                  onClick={openBecomeModelForm}
+                  style={{ fontSize: '1.35rem', minWidth: '200px' }}
                 >
-                  ×
+                  Become a Model
                 </button>
               </div>
-              
-              {!showForgotPassword ? (
-                <>
-                  <form onSubmit={handleAuth} className="w-full flex flex-col gap-4">
-                    <div>
-                      <label className="block mb-1 text-sm font-medium text-gray-700">Email</label>
-                    <input
-                      type="email"
-                        placeholder="Your email address"
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-[var(--gold)] focus:border-[var(--gold)] outline-none transition"
-                      value={authEmail}
-                      onChange={e => setAuthEmail(e.target.value)}
-                      required
-                    />
-                    </div>
-                    <div>
-                      <label className="block mb-1 text-sm font-medium text-gray-700">Password</label>
-                    <input
-                      type="password"
-                        placeholder="Your password"
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-[var(--gold)] focus:border-[var(--gold)] outline-none transition"
-                      value={authPassword}
-                      onChange={e => setAuthPassword(e.target.value)}
-                      required
-                    />
-                    </div>
-                    
-                    {authError && (
-                      <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm">
-                        {authError}
-                      </div>
-                    )}
-                    
-                    {authSuccess && (
-                      <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">
-                        {authSuccess}
-                      </div>
-                    )}
-                    
-                    {authMode === 'signup' && !authSuccess && (
-                      <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg border border-blue-100">
-                        <p className="font-medium text-blue-800 mb-1">Important:</p>
-                        <p>After signing up, you'll receive a confirmation email with a verification link from Felix Tell.</p>
-                        <p className="mt-1">You must click this link to activate your account.</p>
-                      </div>
-                    )}
-                    
-                    <button
-                      type="submit"
-                      className="w-full py-3 rounded-lg bg-[var(--gold)] text-white font-semibold text-lg hover:bg-[#c4a436] transition-colors mt-2"
-                    >
-                      {authMode === 'login' ? 'Login' : 'Sign Up'}
-                    </button>
-                    
-                    {authMode === 'login' && (
-                      <button
-                        type="button"
-                        className="self-start text-sm text-[var(--gold)] hover:text-[#c4a436] transition"
-                        onClick={() => setShowForgotPassword(true)}
-                      >
-                        Forgot password?
-                      </button>
-                    )}
-                  </form>
-                  
-                  <div className="flex items-center my-6">
-                    <div className="flex-1 h-px bg-gray-300"></div>
-                    <span className="px-4 text-sm text-gray-500">or</span>
-                    <div className="flex-1 h-px bg-gray-300"></div>
+            </>
+          )}
+
+          {showContactForm && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white p-8 rounded shadow max-w-md w-full">
+                <h2 className="text-2xl font-bold mb-4">Contact</h2>
+                {contactSuccess ? (
+                  <div className="text-center py-8">
+                    <div className="text-green-600 text-3xl mb-2">✓</div>
+                    <p className="text-lg font-medium text-gray-800 mb-2">Message sent successfully!</p>
+                    <p className="text-gray-600">We'll get back to you as soon as possible.</p>
                   </div>
-                  
-                    <button
-                      type="button"
-                    className="w-full py-3 rounded-lg border border-[var(--gold)] bg-white text-[var(--gold)] font-medium transition hover:bg-[var(--gold)] hover:text-white focus:outline-none"
-                    onClick={() => {
-                      setAuthMode(authMode === 'login' ? 'signup' : 'login');
-                      setAuthSuccess('');
-                      setAuthError('');
+                ) : user ? (
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      if (contactMessage.trim()) {
+                        const success = await sendEmail(
+                          'family@felixtell.com',
+                          'Brand Contact Message',
+                          `Message from ${user.email}: ${contactMessage}`
+                        );
+                        
+                        if (success) {
+                          setContactSuccess(true);
+                          setTimeout(() => {
+                            setContactMessage('');
+                            setContactSuccess(false);
+                        setShowContactForm(false);
+                          }, 3000);
+                        }
+                      }
                     }}
                   >
-                    {authMode === 'login' ? 'New brand? Create account' : 'Already have an account? Login'}
-                    </button>
-                </>
-              ) : (
-                <>
-                  <form onSubmit={handleForgotPassword} className="w-full flex flex-col gap-4">
-                    <div>
-                      <label className="block mb-1 text-sm font-medium text-gray-700">Email Address</label>
-                      <input 
-                        type="email" 
-                        placeholder="Enter your email" 
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-[var(--gold)] focus:border-[var(--gold)] outline-none transition"
-                        value={forgotPasswordEmail} 
-                        onChange={e => setForgotPasswordEmail(e.target.value)} 
-                        required 
-                      />
+                    <p className="mb-2 text-gray-700">
+                      We will get back to you as soon as possible at your email address.
+                    </p>
+                    <textarea
+                      className="border p-2 w-full mb-4 rounded"
+                      placeholder="Your message"
+                      value={contactMessage}
+                      onChange={(e) => setContactMessage(e.target.value)}
+                      rows={4}
+                      required
+                    />
+                    <div className="flex gap-2">
+                      <button type="submit" className="px-4 py-2 bg-[var(--gold)] text-white rounded">Send</button>
+                      <button type="button" className="px-4 py-2 bg-gray-300 text-black rounded" onClick={() => setShowContactForm(false)}>Close</button>
                     </div>
+                  </form>
+                ) : (
+                  <form onSubmit={handleContactSubmit}>
+                    <p className="mb-2 text-gray-700">Please enter your email address:</p>
+                    <input
+                      type="email"
+                      className="border p-2 w-full mb-4 rounded"
+                      placeholder="Your email address"
+                      value={contactEmail}
+                      onChange={(e) => setContactEmail(e.target.value)}
+                      required
+                    />
+                    <p className="mb-2 text-gray-700">Your message:</p>
+                    <textarea
+                      className="border p-2 w-full mb-4 rounded"
+                      placeholder="How can we help you?"
+                      value={contactMessage}
+                      onChange={(e) => setContactMessage(e.target.value)}
+                      rows={4}
+                      required
+                    />
+                    <p className="text-sm text-gray-600 mb-4">We'll get back to you as soon as possible.</p>
+                    <div className="flex gap-2">
+                      <button type="submit" className="px-4 py-2 bg-[var(--gold)] text-white rounded">Send</button>
+                      <button type="button" className="px-4 py-2 bg-gray-300 text-black rounded" onClick={() => setShowContactForm(false)}>Close</button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            </div>
+          )}
+
+          {showBecomeModelForm && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-xl shadow-xl border border-[#E5C76B] w-full max-w-md p-4 sm:p-8 mx-2 box-border">
+                <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold mb-4">Become a Model</h2>
+                  <button 
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300"
+                    onClick={() => setShowBecomeModelForm(false)}
+                  >
+                    ×
+                  </button>
+                </div>
+                <form onSubmit={handleBecomeModelSubmit} className="flex flex-col space-y-4">
+                  <div>
+                    <label className="block text-gray-700 mb-2 font-medium">Contact information:</label>
+                    <input 
+                      type="text" 
+                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-[var(--gold)] focus:border-[var(--gold)] outline-none" 
+                      placeholder="Email address or phone number" 
+                      value={becomeModelEmail} 
+                      onChange={(e) => setBecomeModelEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-gray-700 mb-2 font-medium">Write something about yourself:</label>
+                    <textarea
+                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-[var(--gold)] focus:border-[var(--gold)] outline-none"
+                      placeholder="Tell us about yourself, experience, height, age, interests..."
+                      value={becomeModelAge} 
+                      onChange={(e) => setBecomeModelAge(e.target.value)}
+                      rows={4}
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-gray-700 mb-2 font-medium">Upload photos:</label>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        className="px-4 py-2 border border-[var(--gold)] text-[var(--gold)] bg-white hover:bg-[var(--gold)] hover:text-white transition-colors rounded-lg"
+                        onClick={() => document.getElementById('model-photos')?.click()}
+                      >
+                        Select Photos
+                      </button>
+                      <input 
+                        id="model-photos" 
+                        type="file" 
+                        className="hidden" 
+                        accept="image/*" 
+                        multiple 
+                        onChange={handleFileSelect}
+                        lang="en"
+                      />
+                      <span className="ml-3 text-gray-500 text-sm">
+                        {fileUploadStatus || "Up to 5 photos"}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-xs text-gray-500">Please include a headshot and full body shot</p>
                     
-                    {forgotPasswordMessage && (
-                      <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">
-                        {forgotPasswordMessage}
+                    {selectedFiles.length > 0 && (
+                      <div className="mt-3 p-2 border rounded-lg bg-gray-50">
+                        <p className="text-sm font-medium text-gray-700 mb-1">Selected files:</p>
+                        <ul className="text-xs text-gray-600">
+                          {Array.from(selectedFiles).map((file, index) => (
+                            <li key={index} className="truncate">
+                              {file.name} ({Math.round(file.size / 1024)} KB)
+                            </li>
+                          ))}
+                        </ul>
                       </div>
                     )}
-                    
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
                     <button 
                       type="submit" 
-                      className="w-full py-3 rounded-lg bg-[var(--gold)] text-white font-semibold text-lg hover:bg-[#c4a436] transition-colors"
+                      className="flex-1 py-3 bg-[var(--gold)] text-white rounded-lg hover:bg-[#D4AF37] transition-colors disabled:opacity-50"
+                      disabled={fileUploadStatus === 'Sending application...'}
                     >
-                      Send Password Reset Link
+                      {fileUploadStatus === 'Sending application...' ? 'Sending...' : 'Submit'}
                     </button>
-                  </form>
-                  
-                  <button 
-                    className="mt-4 text-sm text-[var(--gold)] hover:text-[#c4a436] transition" 
-                    onClick={() => setShowForgotPassword(false)}
-                  >
-                    Back to login
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-
-        {user && (
-          <div className="mb-8 px-6 py-4 rounded-xl shadow-lg bg-white flex flex-col items-center border border-[#E5C76B] w-72" style={{boxShadow: '0 4px 24px 0 rgba(246,211,101,0.10)'}}>
-            <div className="flex items-center gap-2 mb-2">
-              <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#F6D365"/><text x="12" y="16" textAnchor="middle" fontSize="12" fill="#222" fontWeight="bold">@</text></svg>
-              <span className="font-medium text-gray-700">Logged in as</span>
-            </div>
-            <div className="font-semibold text-lg text-black mb-3 break-all text-center">{user.email}</div>
-            <button
-              className="px-5 py-2 rounded-full bg-white text-gray-600 border border-gray-300 text-sm font-medium shadow hover:bg-gray-100 transition"
-              onClick={() => {
-                setShowRejectedModels(true);
-                fetchRejectedModels();
-              }}
-            >
-              View Rejected Models
-            </button>
-            <button
-              className="mt-3 px-5 py-2 rounded-full bg-gray-200 text-gray-800 font-semibold shadow hover:bg-gray-300 transition"
-              onClick={handleLogout}
-            >
-              Logout
-            </button>
-          </div>
-        )}
-
-        {/* Dialog für abgelehnte Models */}
-        {showRejectedModels && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-xl shadow-xl max-w-md w-full">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold">Rejected Models</h2>
-                <button 
-                  className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300"
-                  onClick={() => setShowRejectedModels(false)}
-                >
-                  ×
-                </button>
+                    <button 
+                      type="button" 
+                      className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors" 
+                      onClick={() => setShowBecomeModelForm(false)}
+                      disabled={fileUploadStatus === 'Sending application...'}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
               </div>
-              
-              {rejectedModels.length === 0 ? (
-                <p className="text-gray-600 text-center py-8">No rejected models found.</p>
-              ) : (
-                <div className="space-y-3 max-h-[60vh] overflow-y-auto">
-                  {rejectedModels.map((model) => (
-                    <div key={model.id} className="flex items-center justify-between p-3 border rounded-lg bg-gray-50">
-                      <span className="font-medium">{model.name}</span>
-                      <button
-                        className="px-3 py-1 rounded-full text-sm bg-white text-[var(--gold)] border border-[var(--gold)] font-medium hover:bg-[var(--gold)] hover:text-white transition"
-                        onClick={() => model.id && restoreRejectedModel(model.id, model.name)}
-                      >
-                        Restore
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
-          </div>
-        )}
+          )}
 
-        <div className="mb-12 mt-0 pt-0 flex flex-col items-center w-full">
-          <div className="w-full h-px bg-[#cccccc] mb-11"></div>
-          <button
-            className="px-8 py-3 rounded-full bg-white/90 text-[var(--gold)] border border-[var(--gold)] font-semibold text-xl shadow-lg hover:bg-[var(--gold)] hover:text-white transition-all duration-300 hover:shadow-xl mb-2"
-            style={{ minWidth: '180px', fontSize: '1.25rem' }}
-            onClick={openContactForm}
-          >
-            Contact
-          </button>
-          <div className="w-32 my-8 border-t" style={{ borderColor: "#cccccc" }}></div>
-          <Link
-            href="/about"
-            className="text-gray-500 hover:text-[var(--gold)] transition-colors duration-300 text-lg font-medium tracking-wide"
-            style={{ textAlign: 'center', marginBottom: '-3rem' }}
-          >
-            About Felix Tell
-          </Link>
+          {showBrandForm && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-xl shadow-xl border border-[#E5C76B] w-full max-w-md p-4 sm:p-8 mx-2 box-border">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold">{authMode === 'login' ? 'Brand Login' : 'Brand Signup'}</h2>
+                  <button 
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300"
+                    onClick={() => {
+                      setShowBrandForm(false);
+                      setAuthSuccess('');
+                      setAuthError('');
+                      localStorage.removeItem('pendingSwipe');
+                      setShowBrandFormRequested(false);
+                      setDragX(0);
+                      if (!user && modelsState.length === 0 && allModels.length > 0) {
+                        const missingModel = allModels.find(m => !modelsState.some(s => s.name === m.name));
+                        if (missingModel) setModelsState(prev => [missingModel, ...prev]);
+                      }
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+                
+                {!showForgotPassword ? (
+                  <>
+                    <form onSubmit={handleAuth} className="w-full flex flex-col gap-4">
+                      <div>
+                        <label className="block mb-1 text-sm font-medium text-gray-700">Email</label>
+                        <input
+                          type="email"
+                            placeholder="Your email address"
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-[var(--gold)] focus:border-[var(--gold)] outline-none transition"
+                          value={authEmail}
+                          onChange={e => setAuthEmail(e.target.value)}
+                          required
+                        />
+                        </div>
+                        <div>
+                          <label className="block mb-1 text-sm font-medium text-gray-700">Password</label>
+                          <input
+                            type="password"
+                              placeholder="Your password"
+                              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-[var(--gold)] focus:border-[var(--gold)] outline-none transition"
+                            value={authPassword}
+                            onChange={e => setAuthPassword(e.target.value)}
+                            required
+                          />
+                          </div>
+                          
+                          {authError && (
+                            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm">
+                              {authError}
+                            </div>
+                          )}
+                          
+                          {authSuccess && (
+                            <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">
+                              {authSuccess}
+                            </div>
+                          )}
+                          
+                          {authMode === 'signup' && !authSuccess && (
+                            <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg border border-blue-100">
+                              <p className="font-medium text-blue-800 mb-1">Important:</p>
+                              <p>After signing up, you'll receive a confirmation email with a verification link from Felix Tell.</p>
+                              <p className="mt-1">You must click this link to activate your account.</p>
+                            </div>
+                          )}
+                          
+                          <button
+                            type="submit"
+                            className="w-full py-3 rounded-lg bg-[var(--gold)] text-white font-semibold text-lg hover:bg-[#c4a436] transition-colors mt-2"
+                          >
+                            {authMode === 'login' ? 'Login' : 'Sign Up'}
+                          </button>
+                          
+                          {authMode === 'login' && (
+                            <button
+                              type="button"
+                              className="self-start text-sm text-[var(--gold)] hover:text-[#c4a436] transition"
+                              onClick={() => setShowForgotPassword(true)}
+                            >
+                              Forgot password?
+                            </button>
+                          )}
+                        </form>
+                        
+                        <div className="flex items-center my-6">
+                          <div className="flex-1 h-px bg-gray-300"></div>
+                          <span className="px-4 text-sm text-gray-500">or</span>
+                          <div className="flex-1 h-px bg-gray-300"></div>
+                        </div>
+                        
+                          <button
+                            type="button"
+                          className="w-full py-3 rounded-lg border border-[var(--gold)] bg-white text-[var(--gold)] font-medium transition hover:bg-[var(--gold)] hover:text-white focus:outline-none"
+                          onClick={() => {
+                            setAuthMode(authMode === 'login' ? 'signup' : 'login');
+                            setAuthSuccess('');
+                            setAuthError('');
+                          }}
+                        >
+                          {authMode === 'login' ? 'New brand? Create account' : 'Already have an account? Login'}
+                        </button>
+                  </>
+                ) : (
+                  <>
+                    <form onSubmit={handleForgotPassword} className="w-full flex flex-col gap-4">
+                      <div>
+                        <label className="block mb-1 text-sm font-medium text-gray-700">Email Address</label>
+                        <input 
+                          type="email" 
+                          placeholder="Enter your email" 
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-[var(--gold)] focus:border-[var(--gold)] outline-none transition"
+                          value={forgotPasswordEmail} 
+                          onChange={e => setForgotPasswordEmail(e.target.value)} 
+                          required 
+                        />
+                      </div>
+                      
+                      {forgotPasswordMessage && (
+                        <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">
+                          {forgotPasswordMessage}
+                        </div>
+                      )}
+                      
+                      <button 
+                        type="submit" 
+                        className="w-full py-3 rounded-lg bg-[var(--gold)] text-white font-semibold text-lg hover:bg-[#c4a436] transition-colors"
+                      >
+                        Send Password Reset Link
+                      </button>
+                    </form>
+                    
+                    <button 
+                      className="mt-4 text-sm text-[var(--gold)] hover:text-[#c4a436] transition" 
+                      onClick={() => setShowForgotPassword(false)}
+                    >
+                      Back to login
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          {user && (
+            <div className="mb-8 px-6 py-4 rounded-xl shadow-lg bg-white flex flex-col items-center border border-[#E5C76B] w-72" style={{boxShadow: '0 4px 24px 0 rgba(246,211,101,0.10)'}}>
+              <div className="flex items-center gap-2 mb-2">
+                <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#F6D365"/><text x="12" y="16" textAnchor="middle" fontSize="12" fill="#222" fontWeight="bold">@</text></svg>
+                <span className="font-medium text-gray-700">Logged in as</span>
+              </div>
+              <div className="font-semibold text-lg text-black mb-3 break-all text-center">{user.email}</div>
+              <button
+                className="px-5 py-2 rounded-full bg-white text-gray-600 border border-gray-300 text-sm font-medium shadow hover:bg-gray-100 transition"
+                onClick={() => {
+                  setShowRejectedModels(true);
+                  fetchRejectedModels();
+                }}
+              >
+                View Rejected Models
+              </button>
+              <button
+                className="mt-3 px-5 py-2 rounded-full bg-gray-200 text-gray-800 font-semibold shadow hover:bg-gray-300 transition"
+                onClick={handleLogout}
+              >
+                Logout
+              </button>
+            </div>
+          )}
+
+          {/* Dialog für abgelehnte Models */}
+          {showRejectedModels && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white p-6 rounded-xl shadow-xl max-w-md w-full">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-2xl font-bold">Rejected Models</h2>
+                  <button 
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300"
+                    onClick={() => setShowRejectedModels(false)}
+                  >
+                    ×
+                  </button>
+                </div>
+                
+                {rejectedModels.length === 0 ? (
+                  <p className="text-gray-600 text-center py-8">No rejected models found.</p>
+                ) : (
+                  <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+                    {rejectedModels.map((model) => (
+                      <div key={model.id} className="flex items-center justify-between p-3 border rounded-lg bg-gray-50">
+                        <span className="font-medium">{model.name}</span>
+                        <button
+                          className="px-3 py-1 rounded-full text-sm bg-white text-[var(--gold)] border border-[var(--gold)] font-medium hover:bg-[var(--gold)] hover:text-white transition"
+                          onClick={() => model.id && restoreRejectedModel(model.id, model.name)}
+                        >
+                          Restore
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="mb-12 mt-0 pt-0 flex flex-col items-center w-full">
+            <div className="w-full h-px bg-[#cccccc] mb-11"></div>
+            <button
+              className="px-8 py-3 rounded-full bg-white/90 text-[var(--gold)] border border-[var(--gold)] font-semibold text-xl shadow-lg hover:bg-[var(--gold)] hover:text-white transition-all duration-300 hover:shadow-xl mb-2"
+              style={{ minWidth: '180px', fontSize: '1.25rem' }}
+              onClick={openContactForm}
+            >
+              Contact
+            </button>
+            <div className="w-32 my-8 border-t" style={{ borderColor: "#cccccc" }}></div>
+            <Link
+              href="/about"
+              className="text-gray-500 hover:text-[var(--gold)] transition-colors duration-300 text-lg font-medium tracking-wide"
+              style={{ textAlign: 'center', marginBottom: '-3rem' }}
+            >
+              About Felix Tell
+            </Link>
+          </div>
         </div>
-    </div>
+      </div>
+      <style>{`
+        .background-stripes {
+          position: fixed;
+          inset: 0;
+          z-index: 0;
+          width: 100vw;
+          height: 100vh;
+          background: repeating-linear-gradient(
+            135deg,
+            #E8DCCE,
+            #E8DCCE 36px,
+            #F0C040 36px,
+            #F0C040 38px,
+            #F3EBDD 38px,
+            #F3EBDD 76px
+          );
+        }
+      `}</style>
     </div>
   );
 }
