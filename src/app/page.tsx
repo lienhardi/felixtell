@@ -790,6 +790,33 @@ export default function Home() {
     if (allModels.length > 0) setModelsState(allModels);
   }, [user, allModels]);
 
+  // PATCH: pendingLeftSwipes-Übernahme in useEffect nach Login
+  useEffect(() => {
+    if (!user) return;
+    const pendingLeftSwipesStr = localStorage.getItem('pendingLeftSwipes');
+    if (!pendingLeftSwipesStr) return;
+    (async () => {
+      try {
+        const pendingLeftSwipes = JSON.parse(pendingLeftSwipesStr);
+        if (Array.isArray(pendingLeftSwipes) && pendingLeftSwipes.length > 0) {
+          for (const swipe of pendingLeftSwipes) {
+            if (swipe.image_name) {
+              await supabase.from('swipes').insert({
+                brand_id: user.id,
+                model_name: swipe.image_name,
+                direction: 'left',
+                image_name: swipe.image_name
+              });
+            }
+          }
+        }
+      } catch {}
+      localStorage.removeItem('pendingLeftSwipes');
+      // Nach Übernahme: modelsState neu filtern
+      fetchSwipedModels();
+    })();
+  }, [user]);
+
   if (typeof window !== 'undefined' && (window as any).felixtell_modal_blocked === undefined) {
     (window as any).felixtell_modal_blocked = false;
   }
