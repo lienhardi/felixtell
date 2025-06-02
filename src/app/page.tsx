@@ -74,6 +74,9 @@ export default function Home() {
   // PATCH: Model erst entfernen, wenn das neue Bild geladen ist
   const [modelImageLoaded, setModelImageLoaded] = useState(true);
 
+  // PATCH: fetchSwipedModels blockieren, wenn modelsState aus Storage geladen wurde
+  const modelsStateRestoredRef = useRef(false);
+
   // Helper function to shuffle an array (Fisher-Yates algorithm)
   const shuffleArray = <T extends unknown>(array: T[]): T[] => {
     const shuffled = [...array];
@@ -106,7 +109,7 @@ export default function Home() {
     fetchImages();
   }, []);
 
-  // PATCH: Models-Liste für eingeloggte User = 1:1 zu uniqueImages, kein getModelImage mehr
+  // PATCH: createModels wieder einfügen (jetzt im Scope der Home-Komponente)
   const createModels = useCallback(() => {
     if (!imagesLoaded || availableImages.length === 0) {
       return [];
@@ -150,20 +153,30 @@ export default function Home() {
     return shuffledModels;
   }, [imagesLoaded, availableImages, user]);
 
+  // NEU: Initialisierung nur einmal pro User/Bildset
+  const modelsInitializedRef = useRef<{userId: string|null, imageCount: number}|null>(null);
+  useEffect(() => {
+    const userId = user?.id || null;
+    const imageCount = availableImages.length;
+    if (!imagesLoaded || imageCount === 0) return;
+    if (
+      modelsInitializedRef.current &&
+      modelsInitializedRef.current.userId === userId &&
+      modelsInitializedRef.current.imageCount === imageCount
+    ) {
+      return; // Schon initialisiert für diese Session
+    }
+    const initialModels = createModels();
+    setAllModels(initialModels);
+    setModelsState(initialModels);
+    modelsInitializedRef.current = {userId, imageCount};
+  }, [imagesLoaded, availableImages, user, createModels]);
+
   // Models-Array - lädt bestehende oder generiert neue
   const [allModels, setAllModels] = useState<{id: number, name: string, img: string}[]>([]);
   const [modelsState, setModelsState] = useState<{id: number, name: string, img: string}[]>([]);
   const [currentModel, setCurrentModel] = useState(0);
   const [swipeDirection, setSwipeDirection] = useState<null | 'left' | 'right'>(null);
-
-  // Initialize models when images are loaded
-  useEffect(() => {
-    if (imagesLoaded && availableImages.length > 0) {
-      const initialModels = createModels();
-      setAllModels(initialModels);
-      setModelsState(initialModels);
-    }
-  }, [imagesLoaded, availableImages, createModels]);
 
   // Fetch swiped models to filter them out
   const fetchSwipedModels = async () => {
@@ -189,7 +202,7 @@ export default function Home() {
 
   // Update the useEffect to filter out swiped models
   useEffect(() => {
-    if (allModels.length > 0) {
+    if (allModels.length > 0 && !modelsStateRestoredRef.current) {
       fetchSwipedModels();
     }
   }, [user, allModels]);
@@ -750,6 +763,32 @@ export default function Home() {
   useEffect(() => {
     if (!showBrandForm) setShowBrandFormRequested(false);
   }, [showBrandForm]);
+
+  // PATCH: modelsState für eingeloggte User persistent machen
+  useEffect(() => {
+    if (!user) return;
+    // Beim Wechsel von modelsState speichern
+    sessionStorage.setItem('felixtell_modelsState', JSON.stringify(modelsState));
+  }, [modelsState, user]);
+
+  useEffect(() => {
+    if (!user) return;
+    // Beim Mount: modelsState aus Storage wiederherstellen, falls vorhanden
+    const stored = sessionStorage.getItem('felixtell_modelsState');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].img) {
+          setModelsState(parsed);
+          modelsStateRestoredRef.current = true;
+          return;
+        }
+      } catch {}
+    }
+    modelsStateRestoredRef.current = false;
+    // Fallback: normale Initialisierung
+    if (allModels.length > 0) setModelsState(allModels);
+  }, [user, allModels]);
 
   if (typeof window !== 'undefined' && (window as any).felixtell_modal_blocked === undefined) {
     (window as any).felixtell_modal_blocked = false;
