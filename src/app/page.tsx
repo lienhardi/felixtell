@@ -270,8 +270,8 @@ export default function Home() {
   };
 
   // Centralize swipe recording to prevent duplicates
-  const recordSwipe = async (modelName: string, direction: string) => {
-    const imageName = modelsState[0]?.img || '';
+  const recordSwipe = async (modelName: string, direction: string, imageNameOverride?: string) => {
+    const imageName = imageNameOverride || modelsState[0]?.img || '';
     console.log('[recordSwipe] called', {modelName, direction, user, showBrandForm, isProcessingSwipe, processingSwipeRef: processingSwipeRef.current, modelsState: modelsState.map(m=>m.name)});
     
     // Combined check for existing processing or brand form open
@@ -332,9 +332,10 @@ export default function Home() {
       });
       const { data: existingSwipes, error: existingError } = await supabase
         .from('swipes')
-        .select('id')
+        .select('*') // ALLE Felder loggen
         .eq('brand_id', user.id)
         .eq('image_name', imageName);
+      console.log('[DB EXISTING SWIPES]', { existingSwipes, existingError, query: { brand_id: user.id, image_name: imageName } });
       if (existingError) {
         console.error('[DB EXISTING ERROR]', existingError);
       }
@@ -460,7 +461,7 @@ export default function Home() {
       const direction = diff > 0 ? 'right' : 'left';
       setDragX(direction === 'right' ? window.innerWidth : -window.innerWidth);
       setTimeout(async () => {
-        await recordSwipe(modelsState[0]?.name, direction);
+        await recordSwipe(modelsState[0]?.name, direction, modelsState[0]?.img);
         if (!user && direction === 'left') {
           setDragX(-window.innerWidth);
           setModelImageLoaded(false);
@@ -513,7 +514,7 @@ export default function Home() {
     try {
       const pendingSwipe = JSON.parse(pendingSwipeStr);
       if (pendingSwipe && pendingSwipe.image_name && pendingSwipe.direction) {
-        recordSwipe(modelsState[0]?.name, pendingSwipe.direction);
+        recordSwipe(pendingSwipe.image_name, pendingSwipe.direction, pendingSwipe.image_name);
         localStorage.removeItem('pendingSwipe');
         // Nach Login: Model auch aus modelsState entfernen, wenn es vorne liegt und Rechtsswipe war
         if (pendingSwipe.direction === 'right' && modelsState.length > 0 && modelsState[0].img === pendingSwipe.image_name) {
@@ -706,22 +707,39 @@ export default function Home() {
   // Funktion zum Wiederherstellen eines abgelehnten Models
   const restoreRejectedModel = async (modelId: string, imageName: string) => {
     if (!user) return;
-    
-    // Lösche den Swipe aus der Datenbank
-    const { error } = await supabase
-          .from('swipes')
+    console.log('[RESTORE] Versuch zu löschen:', {
+      userId: user.id,
+      imageName,
+      direction: 'left'
+    });
+    // Vor dem Löschen: Logge alle passenden Swipes
+    const { data: swipesBefore, error: errorBefore } = await supabase
+      .from('swipes')
+      .select('*')
+      .eq('brand_id', user.id)
+      .eq('image_name', imageName)
+      .eq('direction', 'left');
+    console.log('[RESTORE] Swipes vor Delete:', { swipesBefore, errorBefore });
+    const { error, data } = await supabase
+      .from('swipes')
       .delete()
-      .eq('id', modelId);
-    
+      .eq('brand_id', user.id)
+      .eq('image_name', imageName)
+      .eq('direction', 'left');
+    console.log('[RESTORE] Delete result:', { error, data });
+    // Nach dem Löschen: Logge alle passenden Swipes nochmal
+    const { data: swipesAfter, error: errorAfter } = await supabase
+      .from('swipes')
+      .select('*')
+      .eq('brand_id', user.id)
+      .eq('image_name', imageName)
+      .eq('direction', 'left');
+    console.log('[RESTORE] Swipes nach Delete:', { swipesAfter, errorAfter });
     if (error) {
       console.error('Error restoring model:', error);
       return;
     }
-    
-    // Aktualisiere die Liste der abgelehnten Models
-    setRejectedModels(prev => prev.filter(model => model.id !== modelId));
-    
-    // Füge das Model wieder zum modelsState hinzu
+    setRejectedModels(prev => prev.filter(model => model.name !== imageName));
     const modelToAdd = allModels.find(m => m.img === imageName);
     if (modelToAdd) {
       setModelsState(prev => [modelToAdd, ...prev]);
@@ -831,8 +849,15 @@ export default function Home() {
       try {
         const pendingLeftSwipes = JSON.parse(pendingLeftSwipesStr);
         if (Array.isArray(pendingLeftSwipes) && pendingLeftSwipes.length > 0) {
+          // Hole alle bereits geswipten Bilder (left) für diesen User
+          const { data: existingLeft, error: errLeft } = await supabase
+            .from('swipes')
+            .select('image_name')
+            .eq('brand_id', user.id)
+            .eq('direction', 'left');
+          const alreadyLeft = new Set((existingLeft || []).map((s: any) => s.image_name));
           for (const swipe of pendingLeftSwipes) {
-            if (swipe.image_name) {
+            if (swipe.image_name && !alreadyLeft.has(swipe.image_name)) {
               await supabase.from('swipes').insert({
                 brand_id: user.id,
                 model_name: swipe.image_name,
@@ -1054,7 +1079,6 @@ export default function Home() {
           )}
 
           <div className="flex flex-col items-center mb-4" style={{position: 'relative', width: '20rem', height: '20rem'}}>
-            {(() => { console.log('[RENDER] modelsState:', modelsState.map(m=>m.name), 'allModels:', allModels.map(m=>m.name), 'user:', user); return null; })()}
             {modelsState.length > 0 && !showBecomeModelForm && (
               <div
                 ref={swipeRef}
@@ -1100,7 +1124,7 @@ export default function Home() {
                       if (isProcessingSwipe || processingSwipeRef.current || showBrandForm) {
                         return;
                       }
-                      await recordSwipe(modelsState[0]?.name, 'left');
+                      await recordSwipe(modelsState[0]?.name, 'left', modelsState[0]?.img);
                       if (!user) {
                         setDragX(-window.innerWidth);
                         setModelImageLoaded(false);
@@ -1154,7 +1178,7 @@ export default function Home() {
                       if (isProcessingSwipe || processingSwipeRef.current || showBrandForm) {
                         return;
                       }
-                      await recordSwipe(modelsState[0]?.name, 'right');
+                      await recordSwipe(modelsState[0]?.name, 'right', modelsState[0]?.img);
                       if (user && !showBrandForm) {
                         setModelImageLoaded(false);
                         const nextImg = modelsState[1]?.img;
