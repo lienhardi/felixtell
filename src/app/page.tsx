@@ -1570,12 +1570,14 @@ export default function Home() {
                 {rejectedModels.length === 0 ? (
                   <p className="text-gray-600 text-center py-8">No rejected models found.</p>
                 ) : (
-                  <div className="space-y-3 max-h-[60vh] overflow-y-auto">
-                    {rejectedModels.map((model) => (
-                      <div key={model.id} className="flex items-center justify-between p-3 border rounded-lg bg-gray-50">
-                        <span className="font-medium">{model.name}</span>
+                  <div className="space-y-8 max-h-[60vh] overflow-y-auto px-2">
+                    {[...new Map([...rejectedModels].reverse().map(m => [m.name, m])).values()].map((model) => (
+                      <div key={model.id} className="flex flex-col items-center p-0 border rounded-xl bg-gray-50">
+                        <div style={{width:'100%',maxWidth:320,aspectRatio:'1/1',position:'relative',borderRadius:16,overflow:'hidden',background:'#eee'}}>
+                          <Image src={model.name} alt="Rejected model" fill style={{objectFit:'cover'}} />
+                        </div>
                         <button
-                          className="px-3 py-1 rounded-full text-sm bg-white text-[var(--gold)] border border-[var(--gold)] font-medium hover:bg-[var(--gold)] hover:text-white transition"
+                          className="mt-4 mb-4 px-5 py-2 rounded-full text-base bg-white text-[var(--gold)] border border-[var(--gold)] font-medium hover:bg-[var(--gold)] hover:text-white transition"
                           onClick={() => model.id && restoreRejectedModel(model.id, model.name)}
                         >
                           Restore
