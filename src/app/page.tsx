@@ -461,10 +461,12 @@ export default function Home() {
       setDragX(direction === 'right' ? window.innerWidth : -window.innerWidth);
       setTimeout(async () => {
         await recordSwipe(modelsState[0]?.name, direction, modelsState[0]?.img);
-        if (!user) {
+        if (!user && direction === 'left') {
+          setDragX(-window.innerWidth);
           setModelImageLoaded(false);
           setTimeout(() => {
             setModelsState((prev) => prev.slice(1));
+            setDragX(0);
           }, 250);
         } else {
           setModelImageLoaded(false);
