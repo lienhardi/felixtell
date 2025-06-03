@@ -450,7 +450,6 @@ export default function Home() {
     } else if ('clientX' in e) {
       endX = (e as MouseEvent).clientX;
     } else {
-      // Fallback: keine Koordinate, kein Swipe
       setDragX(0);
       setTimeout(() => { swipeHandledRef.current = false; }, 300);
       return;
@@ -461,16 +460,14 @@ export default function Home() {
       setDragX(direction === 'right' ? window.innerWidth : -window.innerWidth);
       setTimeout(async () => {
         await recordSwipe(modelsState[0]?.name, direction, modelsState[0]?.img);
+        setModelImageLoaded(false);
         if (!user) {
-          setDragX(-window.innerWidth);
-          setModelImageLoaded(false);
           setTimeout(() => {
             setModelsState((prev) => prev.slice(1));
             setDragX(0);
           }, 250);
         } else {
-          setModelImageLoaded(false);
-          setPendingRemove({direction: 'left', index: 0});
+          setModelsState((prev) => prev.slice(1));
         }
         setTimeout(() => { swipeHandledRef.current = false; }, 300);
       }, 250);
