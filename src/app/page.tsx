@@ -269,7 +269,17 @@ export default function Home() {
     setDragX(0);
   };
 
-  // Centralize swipe recording to prevent duplicates
+  // Hilfsfunktion: Swipe als Gast in pending_swipes speichern
+  const savePendingSwipe = async (email: string, imageName: string, direction: string) => {
+    if (!email) return;
+    await supabase.from('pending_swipes').insert({
+      email,
+      image_name: imageName,
+      direction
+    });
+  };
+
+  // recordSwipe anpassen
   const recordSwipe = async (modelName: string, direction: string, imageNameOverride?: string) => {
     const imageName = imageNameOverride || modelsState[0]?.img || '';
     console.log('[recordSwipe] called', {modelName, direction, user, showBrandForm, isProcessingSwipe, processingSwipeRef: processingSwipeRef.current, modelsState: modelsState.map(m=>m.name)});
@@ -290,35 +300,22 @@ export default function Home() {
 
     try {
         if (!user) {
-        // Guest user
-        if (direction === 'right') {
-          // SPEICHERN: pendingSwipe für späteren Login
-          localStorage.setItem('pendingSwipe', JSON.stringify({
-            image_name: imageName,
-            direction: 'right'
-          }));
-          if (!showBrandFormRequested) {
+        // Gast: Swipes direkt in pending_swipes speichern
+        if (direction === 'right' || direction === 'left') {
+          await savePendingSwipe(authEmail, imageName, direction);
+          if (direction === 'right' && !showBrandFormRequested) {
             setShowBrandFormRequested(true);
             setAuthMode('login');
             setAuthSuccess('');
             setAuthError('');
-          setShowBrandForm(true);
+            setShowBrandForm(true);
           }
-        } else { // Left swipe for guest
-          setSwipeDirection(null); // Reset visual swipe direction
-          const pendingLeftSwipes = JSON.parse(localStorage.getItem('pendingLeftSwipes') || '[]');
-          pendingLeftSwipes.push({ image_name: imageName });
-          localStorage.setItem('pendingLeftSwipes', JSON.stringify(pendingLeftSwipes));
         }
-        // For guest swipes, we usually finish processing here.
-        // The main 'finally' block might not be hit if we return early.
-        // Reset processing flags for guests, as no further async DB operation is awaited here.
-        // Delay slightly to allow UI to update before another swipe is possible
         setTimeout(() => {
           setIsProcessingSwipe(false);
           processingSwipeRef.current = false;
-        }, 100); // Small delay
-        return; 
+        }, 100);
+        return;
       }
 
       // Logged-in user logic from here
@@ -508,12 +505,20 @@ export default function Home() {
   // Update the processPendingSwipe function
   useEffect(() => {
     if (!user) return; // Nur für eingeloggte User!
-    if (showBrandForm || showBrandFormRequested) return;
+    console.log('[PENDING SWIPE CHECK]', {
+      user,
+      showBrandForm,
+      showBrandFormRequested,
+      pendingSwipe: localStorage.getItem('pendingSwipe'),
+      pendingLeftSwipes: localStorage.getItem('pendingLeftSwipes')
+    });
+    if (showBrandForm) return;
     const pendingSwipeStr = localStorage.getItem('pendingSwipe');
     if (!pendingSwipeStr) return;
     try {
       const pendingSwipe = JSON.parse(pendingSwipeStr);
       if (pendingSwipe && pendingSwipe.image_name && pendingSwipe.direction) {
+        console.log('[PENDING SWIPE] Übernehme pendingSwipe:', pendingSwipe);
         recordSwipe(pendingSwipe.image_name, pendingSwipe.direction, pendingSwipe.image_name);
         localStorage.removeItem('pendingSwipe');
         // Nach Login: Model auch aus modelsState entfernen, wenn es vorne liegt und Rechtsswipe war
@@ -525,7 +530,7 @@ export default function Home() {
     } catch (e) {
       localStorage.removeItem('pendingSwipe');
     }
-  }, [user, showBrandForm, showBrandFormRequested]);
+  }, [user, showBrandForm]);
 
   const openContactForm = () => {
     setShowContactForm(true);
@@ -766,7 +771,7 @@ export default function Home() {
       }
     } else {
       try {
-        const { error } = await supabase.auth.signUp({ email: authEmail, password: authPassword });
+        const { data: signUpData, error } = await supabase.auth.signUp({ email: authEmail, password: authPassword });
         if (error) {
           if (
             error.message.includes('duplicate key value') ||
@@ -778,9 +783,48 @@ export default function Home() {
           }
         } else {
           setAuthSuccess(`Confirmation email sent! Please check ${authEmail} and click the verification link to activate your account.`);
-          // Clear the form but don't hide it so user can see the success message
           setAuthEmail('');
           setAuthPassword('');
+          // NEU: Swipes direkt nach Registrierung speichern
+          const newUserId = signUpData?.user?.id;
+          if (newUserId) {
+            // Rightswipe (pendingSwipe)
+            const pendingSwipeStr = localStorage.getItem('pendingSwipe');
+            if (pendingSwipeStr) {
+              try {
+                const pendingSwipe = JSON.parse(pendingSwipeStr);
+                if (pendingSwipe && pendingSwipe.image_name && pendingSwipe.direction) {
+                  await supabase.from('swipes').insert({
+                    brand_id: newUserId,
+                    model_name: pendingSwipe.image_name,
+                    direction: pendingSwipe.direction,
+                    image_name: pendingSwipe.image_name
+                  });
+                }
+              } catch {}
+              localStorage.removeItem('pendingSwipe');
+            }
+            // Linksswipes (pendingLeftSwipes)
+            const pendingLeftSwipesStr = localStorage.getItem('pendingLeftSwipes');
+            if (pendingLeftSwipesStr) {
+              try {
+                const pendingLeftSwipes = JSON.parse(pendingLeftSwipesStr);
+                if (Array.isArray(pendingLeftSwipes) && pendingLeftSwipes.length > 0) {
+                  for (const swipe of pendingLeftSwipes) {
+                    if (swipe.image_name) {
+                      await supabase.from('swipes').insert({
+                        brand_id: newUserId,
+                        model_name: swipe.image_name,
+                        direction: 'left',
+                        image_name: swipe.image_name
+                      });
+                    }
+                  }
+                }
+              } catch {}
+              localStorage.removeItem('pendingLeftSwipes');
+            }
+          }
         }
       } catch (err) {
         setAuthError('Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
@@ -843,6 +887,10 @@ export default function Home() {
   // PATCH: pendingLeftSwipes-Übernahme in useEffect nach Login
   useEffect(() => {
     if (!user) return;
+    console.log('[PENDING LEFT SWIPES CHECK]', {
+      user,
+      pendingLeftSwipes: localStorage.getItem('pendingLeftSwipes')
+    });
     const pendingLeftSwipesStr = localStorage.getItem('pendingLeftSwipes');
     if (!pendingLeftSwipesStr) return;
     (async () => {
@@ -858,6 +906,7 @@ export default function Home() {
           const alreadyLeft = new Set((existingLeft || []).map((s: any) => s.image_name));
           for (const swipe of pendingLeftSwipes) {
             if (swipe.image_name && !alreadyLeft.has(swipe.image_name)) {
+              console.log('[PENDING LEFT SWIPE] Übernehme:', swipe);
               await supabase.from('swipes').insert({
                 brand_id: user.id,
                 model_name: swipe.image_name,
@@ -871,6 +920,41 @@ export default function Home() {
       localStorage.removeItem('pendingLeftSwipes');
       // Nach Übernahme: modelsState neu filtern
       await fetchSwipedModels();
+    })();
+  }, [user]);
+
+  // Nach Login/Signup: pending_swipes übernehmen
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      // Hole alle pending_swipes für die E-Mail (user.email)
+      const { data: pending, error } = await supabase
+        .from('pending_swipes')
+        .select('*')
+        .eq('email', user.email);
+      if (pending && pending.length > 0) {
+        for (const swipe of pending) {
+          // Prüfe, ob Swipe schon existiert
+          const { data: existing, error: err2 } = await supabase
+            .from('swipes')
+            .select('id')
+            .eq('brand_id', user.id)
+            .eq('image_name', swipe.image_name)
+            .eq('direction', swipe.direction);
+          if (!existing || existing.length === 0) {
+            await supabase.from('swipes').insert({
+              brand_id: user.id,
+              model_name: swipe.image_name,
+              direction: swipe.direction,
+              image_name: swipe.image_name
+            });
+          }
+        }
+        // Nach Übernahme: Lösche alle übernommenen pending_swipes
+        await supabase.from('pending_swipes').delete().eq('email', user.email);
+        // Deck neu filtern
+        await fetchSwipedModels();
+      }
     })();
   }, [user]);
 
