@@ -77,6 +77,9 @@ export default function Home() {
   // PATCH: fetchSwipedModels blockieren, wenn modelsState aus Storage geladen wurde
   const modelsStateRestoredRef = useRef(false);
 
+  // PATCH: Model erst nach echtem Bild-Load entfernen (Button und Swipe identisch)
+  const [pendingRemove, setPendingRemove] = useState<null | {direction: 'left'|'right', index: number}>(null);
+
   // Helper function to shuffle an array (Fisher-Yates algorithm)
   const shuffleArray = <T extends unknown>(array: T[]): T[] => {
     const shuffled = [...array];
@@ -216,10 +219,8 @@ export default function Home() {
   const isSwiping = useRef(false);
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-  const [pendingRemove, setPendingRemove] = useState(false);
   const [justRemoved, setJustRemoved] = useState(false);
   const [pendingModelRemove, setPendingModelRemove] = useState<null | number>(null);
-  const [readyToRemove, setReadyToRemove] = useState(false);
   const [removing, setRemoving] = useState(false);
 
   // Warte auf vollständiges Laden der Seite
@@ -1194,7 +1195,13 @@ export default function Home() {
                       sizes="100%"
                       style={{ objectFit: 'cover', pointerEvents: 'none', opacity: modelImageLoaded ? 1 : 0, transition: 'opacity 0.2s' }}
                       priority
-                      onLoadingComplete={() => setModelImageLoaded(true)}
+                      onLoadingComplete={() => {
+                        setModelImageLoaded(true);
+                        if (pendingRemove && pendingRemove.index === 0) {
+                          setModelsState((prev) => prev.slice(1));
+                          setPendingRemove(null);
+                        }
+                      }}
                     />
                   )}
                 </div>
@@ -1211,18 +1218,7 @@ export default function Home() {
                       }
                       await recordSwipe(modelsState[0]?.name, 'left', modelsState[0]?.img);
                       setModelImageLoaded(false);
-                      const nextImg = modelsState[1]?.img;
-                      if (nextImg) {
-                        const img = new window.Image();
-                        img.src = nextImg;
-                        img.onload = () => {
-                          setModelsState((prev) => prev.slice(1));
-                          setDragX(0);
-                        };
-                      } else {
-                        setModelsState((prev) => prev.slice(1));
-                        setDragX(0);
-                      }
+                      setPendingRemove({direction: 'left', index: 0});
                     }}
                     aria-label="Dislike"
                   >
@@ -1238,16 +1234,7 @@ export default function Home() {
                       }
                       await recordSwipe(modelsState[0]?.name, 'right', modelsState[0]?.img);
                       setModelImageLoaded(false);
-                      const nextImg = modelsState[1]?.img;
-                      if (nextImg) {
-                        const img = new window.Image();
-                        img.src = nextImg;
-                        img.onload = () => {
-                          setModelsState((prev) => prev.slice(1));
-                        };
-                      } else {
-                        setModelsState((prev) => prev.slice(1));
-                      }
+                      setPendingRemove({direction: 'right', index: 0});
                     }}
                     aria-label="Like"
                   >
