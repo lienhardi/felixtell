@@ -461,40 +461,14 @@ export default function Home() {
       setDragX(direction === 'right' ? window.innerWidth : -window.innerWidth);
       setTimeout(async () => {
         await recordSwipe(modelsState[0]?.name, direction, modelsState[0]?.img);
-        if (!user && direction === 'left') {
-          setDragX(-window.innerWidth);
+        if (!user) {
           setModelImageLoaded(false);
           setTimeout(() => {
             setModelsState((prev) => prev.slice(1));
-            setDragX(0);
           }, 250);
-        }
-        if (user && !showBrandForm && direction === 'left') {
-          setDragX(-window.innerWidth);
-          const nextImg = modelsState[1]?.img;
-          if (nextImg) {
-            const img = new window.Image();
-            img.src = nextImg;
-            img.onload = () => {
-              setModelsState((prev) => {
-                const newState = prev.slice(1);
-                setModelImageLoaded(false);
-                return newState;
-              });
-              setDragX(0);
-            };
-          } else {
-            setModelsState((prev) => {
-              const newState = prev.slice(1);
-              setModelImageLoaded(false);
-              return newState;
-            });
-            setDragX(0);
-          }
-        }
-        if (user && !showBrandForm && direction !== 'left') {
+        } else {
           setModelImageLoaded(false);
-          setModelsState((prev) => prev.slice(1));
+          setPendingRemove({direction: 'left', index: 0});
         }
         setTimeout(() => { swipeHandledRef.current = false; }, 300);
       }, 250);
