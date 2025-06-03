@@ -1170,13 +1170,13 @@ export default function Home() {
                       <svg width="64" height="64" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="30" fill="#F7E7B0" stroke="#F0C040" strokeWidth="4"/><text x="32" y="40" textAnchor="middle" fontSize="32" fill="#F0C040" fontWeight="bold">★</text></svg>
                     </div>
                   )}
-                  {modelsState[0]?.img && (
+                  {modelImageLoaded && modelsState[0]?.img && (
                     <Image 
                       src={modelsState[0].img} 
                       alt={modelsState[0].name}
                       fill
                       sizes="100%"
-                      style={{ objectFit: 'cover', pointerEvents: 'none', opacity: modelImageLoaded ? 1 : 0, transition: 'opacity 0.2s' }}
+                      style={{ objectFit: 'cover', pointerEvents: 'none', opacity: 1, transition: 'opacity 0.2s' }}
                       priority
                       onLoadingComplete={() => {
                         setModelImageLoaded(true);
