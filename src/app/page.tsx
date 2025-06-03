@@ -1210,45 +1210,18 @@ export default function Home() {
                         return;
                       }
                       await recordSwipe(modelsState[0]?.name, 'left', modelsState[0]?.img);
-                      if (!user) {
-                        setDragX(-window.innerWidth);
-                        setModelImageLoaded(false);
-                        // Warte auf Bild-Load
-                        const nextImg = modelsState[1]?.img;
-                        if (nextImg) {
-                          const img = new window.Image();
-                          img.src = nextImg;
-                          img.onload = () => {
-                            setModelsState((prev) => prev.slice(1));
-                            setDragX(0);
-                          };
-                        } else {
+                      setModelImageLoaded(false);
+                      const nextImg = modelsState[1]?.img;
+                      if (nextImg) {
+                        const img = new window.Image();
+                        img.src = nextImg;
+                        img.onload = () => {
                           setModelsState((prev) => prev.slice(1));
                           setDragX(0);
-                        }
-                      }
-                      if (user && !showBrandForm) {
-                        setDragX(-window.innerWidth);
-                        const nextImg = modelsState[1]?.img;
-                        if (nextImg) {
-                          const img = new window.Image();
-                          img.src = nextImg;
-                          img.onload = () => {
-                            setModelsState((prev) => {
-                              const newState = prev.slice(1);
-                              setModelImageLoaded(false);
-                              return newState;
-                            });
-                            setDragX(0);
-                          };
-                        } else {
-                          setModelsState((prev) => {
-                            const newState = prev.slice(1);
-                            setModelImageLoaded(false);
-                            return newState;
-                          });
-                          setDragX(0);
-                        }
+                        };
+                      } else {
+                        setModelsState((prev) => prev.slice(1));
+                        setDragX(0);
                       }
                     }}
                     aria-label="Dislike"
