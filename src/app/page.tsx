@@ -742,6 +742,12 @@ export default function Home() {
         setShowBrandForm(false);
         const { data } = await supabase.auth.getUser();
         setUser(data?.user ?? null);
+        // Warte auf Initialisierung von allModels
+        let tries = 0;
+        while (allModels.length === 0 && tries < 20) {
+          await new Promise(res => setTimeout(res, 50));
+          tries++;
+        }
         const filtered = await fetchSwipedModels();
         console.log('[handleAuth] filtered after login:', filtered.map(m=>m.name), 'modelsState:', modelsState.map(m=>m.name));
         if (filtered.length === 0 && allModels.length > 0) {
