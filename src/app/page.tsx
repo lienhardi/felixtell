@@ -352,7 +352,8 @@ export default function Home() {
         } else {
           console.log('DB INSERT OK', {modelName, direction, user});
           if (direction === 'right') {
-            await sendEmail(
+            // E-Mail-Versand asynchron, nicht blockierend
+            sendEmail(
               'family@felixtell.com',
               'New Match',
               `Brand ${user.email} matched with model ${modelName}\nImage: ${imageName}\nDirektlink: https://felixtell.com${imageName}`
