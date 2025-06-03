@@ -471,17 +471,24 @@ export default function Home() {
         }
         if (user && !showBrandForm && direction === 'left') {
           setDragX(-window.innerWidth);
-          setModelImageLoaded(false);
           const nextImg = modelsState[1]?.img;
           if (nextImg) {
             const img = new window.Image();
             img.src = nextImg;
             img.onload = () => {
-              setModelsState((prev) => prev.slice(1));
+              setModelsState((prev) => {
+                const newState = prev.slice(1);
+                setModelImageLoaded(false);
+                return newState;
+              });
               setDragX(0);
             };
           } else {
-            setModelsState((prev) => prev.slice(1));
+            setModelsState((prev) => {
+              const newState = prev.slice(1);
+              setModelImageLoaded(false);
+              return newState;
+            });
             setDragX(0);
           }
         }
@@ -1113,16 +1120,25 @@ export default function Home() {
                       }
                       if (user && !showBrandForm) {
                         setDragX(-window.innerWidth);
-                        setModelImageLoaded(false);
                         const nextImg = modelsState[1]?.img;
                         if (nextImg) {
                           const img = new window.Image();
                           img.src = nextImg;
                           img.onload = () => {
-                            setModelsState((prev) => prev.slice(1));
+                            setModelsState((prev) => {
+                              const newState = prev.slice(1);
+                              setModelImageLoaded(false);
+                              return newState;
+                            });
+                            setDragX(0);
                           };
                         } else {
-                          setModelsState((prev) => prev.slice(1));
+                          setModelsState((prev) => {
+                            const newState = prev.slice(1);
+                            setModelImageLoaded(false);
+                            return newState;
+                          });
+                          setDragX(0);
                         }
                       }
                     }}
