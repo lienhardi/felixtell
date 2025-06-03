@@ -1251,8 +1251,7 @@ export default function Home() {
                       if (!user) {
                         // NICHTS ENTFERNEN, wie beim Swipe nach rechts
                       } else {
-                        setModelImageLoaded(false);
-                        setPendingRemove({direction: 'right', index: 0});
+                        setModelsState((prev) => prev.slice(1));
                       }
                     }}
                     aria-label="Like"
