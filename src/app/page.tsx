@@ -461,7 +461,7 @@ export default function Home() {
       setDragX(direction === 'right' ? window.innerWidth : -window.innerWidth);
       setTimeout(async () => {
         await recordSwipe(modelsState[0]?.name, direction, modelsState[0]?.img);
-        if (!user && direction === 'left') {
+        if (!user) {
           setDragX(-window.innerWidth);
           setModelImageLoaded(false);
           setTimeout(() => {
@@ -483,31 +483,40 @@ export default function Home() {
   // Update the processPendingSwipe function
   useEffect(() => {
     if (!user) return; // Nur für eingeloggte User!
-    console.log('[PENDING SWIPE CHECK]', {
-      user,
-      showBrandForm,
-      showBrandFormRequested,
-      pendingSwipe: localStorage.getItem('pendingSwipe'),
-      pendingLeftSwipes: localStorage.getItem('pendingLeftSwipes')
-    });
-    if (showBrandForm) return;
-    const pendingSwipeStr = localStorage.getItem('pendingSwipe');
-    if (!pendingSwipeStr) return;
-    try {
-      const pendingSwipe = JSON.parse(pendingSwipeStr);
-      if (pendingSwipe && pendingSwipe.image_name && pendingSwipe.direction) {
-        console.log('[PENDING SWIPE] Übernehme pendingSwipe:', pendingSwipe);
-        recordSwipe(pendingSwipe.image_name, pendingSwipe.direction, pendingSwipe.image_name);
-        localStorage.removeItem('pendingSwipe');
-        // Nach Login: Model auch aus modelsState entfernen, wenn es vorne liegt und Rechtsswipe war
-        if (pendingSwipe.direction === 'right' && modelsState.length > 0 && modelsState[0].img === pendingSwipe.image_name) {
-          setModelImageLoaded(false);
-          setModelsState(prev => prev.slice(1));
+    (async () => {
+      console.log('[PENDING SWIPE CHECK]', {
+        user,
+        showBrandForm,
+        showBrandFormRequested,
+        pendingSwipe: localStorage.getItem('pendingSwipe'),
+        pendingLeftSwipes: localStorage.getItem('pendingLeftSwipes')
+      });
+      if (showBrandForm) return;
+      const pendingSwipeStr = localStorage.getItem('pendingSwipe');
+      if (!pendingSwipeStr) return;
+      try {
+        const pendingSwipe = JSON.parse(pendingSwipeStr);
+        if (pendingSwipe && pendingSwipe.image_name && pendingSwipe.direction) {
+          console.log('[PENDING SWIPE] Übernehme pendingSwipe:', pendingSwipe);
+          await recordSwipe(pendingSwipe.image_name, pendingSwipe.direction, pendingSwipe.image_name);
+          localStorage.removeItem('pendingSwipe');
+          // Nach Login: Model auch aus modelsState entfernen, wenn es vorne liegt und Rechtsswipe war
+          if (pendingSwipe.direction === 'right' && modelsState.length > 0 && modelsState[0].img === pendingSwipe.image_name) {
+            setModelImageLoaded(false);
+            setPendingRemove({direction: 'right', index: 0});
+            // Warte auf Bild-Load
+            let tries = 0;
+            while (!modelImageLoaded && tries < 40) {
+              await new Promise(res => setTimeout(res, 50));
+              tries++;
+            }
+            await fetchSwipedModels();
+          }
         }
+      } catch (e) {
+        localStorage.removeItem('pendingSwipe');
       }
-    } catch (e) {
-      localStorage.removeItem('pendingSwipe');
-    }
+    })();
   }, [user, showBrandForm]);
 
   const openContactForm = () => {
