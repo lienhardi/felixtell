@@ -740,7 +740,8 @@ export default function Home() {
         setAuthError(error.message);
       } else {
         setShowBrandForm(false);
-        console.log('[handleAuth] Login success, user:', user, 'allModels:', allModels.map(m=>m.name));
+        const { data } = await supabase.auth.getUser();
+        setUser(data?.user ?? null);
         const filtered = await fetchSwipedModels();
         console.log('[handleAuth] filtered after login:', filtered.map(m=>m.name), 'modelsState:', modelsState.map(m=>m.name));
         if (filtered.length === 0 && allModels.length > 0) {
