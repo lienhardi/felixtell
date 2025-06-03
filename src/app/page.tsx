@@ -1224,10 +1224,13 @@ export default function Home() {
                         return;
                       }
                       await recordSwipe(modelsState[0]?.name, 'left', modelsState[0]?.img);
-                      setModelImageLoaded(false);
                       if (!user) {
-                        // NICHTS ENTFERNEN, wie beim Swipe nach rechts
+                        setModelImageLoaded(false);
+                        setTimeout(() => {
+                          setModelsState((prev) => prev.slice(1));
+                        }, 250);
                       } else {
+                        setModelImageLoaded(false);
                         setPendingRemove({direction: 'left', index: 0});
                       }
                     }}
@@ -1248,6 +1251,7 @@ export default function Home() {
                       if (!user) {
                         // NICHTS ENTFERNEN, wie beim Swipe nach rechts
                       } else {
+                        setModelImageLoaded(false);
                         setPendingRemove({direction: 'right', index: 0});
                       }
                     }}
