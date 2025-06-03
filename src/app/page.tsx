@@ -1222,7 +1222,7 @@ export default function Home() {
                           setModelsState((prev) => prev.slice(1));
                         }, 250);
                       } else {
-                        setPendingRemove({direction: 'left', index: 0});
+                        setModelsState((prev) => prev.slice(1));
                       }
                     }}
                     aria-label="Dislike"
