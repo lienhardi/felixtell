@@ -1180,7 +1180,10 @@ export default function Home() {
                 <div className="w-full h-full relative" style={{background:'#F0C040'}}>
                   {!modelImageLoaded || !modelsState[0]?.img ? (
                     <div style={{position:'absolute',inset:0,background:'#F0C040',zIndex:2,display:'flex',alignItems:'center',justifyContent:'center',width:'100%',height:'100%'}}>
-                      <svg width="64" height="64" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="30" fill="#F7E7B0" stroke="#F0C040" strokeWidth="4"/><text x="32" y="40" textAnchor="middle" fontSize="32" fill="#F0C040" fontWeight="bold">★</text></svg>
+                      <svg width="120" height="120" viewBox="0 0 120 120" fill="none">
+                        <circle cx="60" cy="60" r="54" fill="#F7E7B0" stroke="#BFA14A" strokeWidth="8"/>
+                        <text x="60" y="82" textAnchor="middle" fontSize="64" fill="#BFA14A" fontWeight="bold" dominantBaseline="middle">★</text>
+                      </svg>
                     </div>
                   ) : (
                     <Image 
