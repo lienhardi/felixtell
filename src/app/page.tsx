@@ -1215,8 +1215,8 @@ export default function Home() {
                       if (isProcessingSwipe || processingSwipeRef.current || showBrandForm) {
                         return;
                       }
-                      setModelImageLoaded(false);
                       await recordSwipe(modelsState[0]?.name, 'left', modelsState[0]?.img);
+                      setModelImageLoaded(false);
                       if (!user) {
                         setTimeout(() => {
                           setModelsState((prev) => prev.slice(1));
