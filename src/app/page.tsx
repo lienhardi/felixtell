@@ -960,6 +960,13 @@ export default function Home() {
     })();
   }, [user]);
 
+  // PATCH: Placeholder nach Anmeldefenster/Abbruch wieder entfernen, falls kein Bildwechsel
+  useEffect(() => {
+    if (!showBrandForm && !modelImageLoaded && modelsState.length > 0) {
+      setModelImageLoaded(true);
+    }
+  }, [showBrandForm, modelImageLoaded, modelsState.length]);
+
   if (typeof window !== 'undefined' && (window as any).felixtell_modal_blocked === undefined) {
     (window as any).felixtell_modal_blocked = false;
   }
@@ -1219,9 +1226,7 @@ export default function Home() {
                       await recordSwipe(modelsState[0]?.name, 'left', modelsState[0]?.img);
                       setModelImageLoaded(false);
                       if (!user) {
-                        setTimeout(() => {
-                          setModelsState((prev) => prev.slice(1));
-                        }, 250);
+                        // NICHTS ENTFERNEN, wie beim Swipe nach rechts
                       } else {
                         setPendingRemove({direction: 'left', index: 0});
                       }
@@ -1241,9 +1246,7 @@ export default function Home() {
                       await recordSwipe(modelsState[0]?.name, 'right', modelsState[0]?.img);
                       setModelImageLoaded(false);
                       if (!user) {
-                        setTimeout(() => {
-                          setModelsState((prev) => prev.slice(1));
-                        }, 250);
+                        // NICHTS ENTFERNEN, wie beim Swipe nach rechts
                       } else {
                         setPendingRemove({direction: 'right', index: 0});
                       }
