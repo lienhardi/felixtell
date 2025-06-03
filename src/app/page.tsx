@@ -472,10 +472,18 @@ export default function Home() {
         if (user && !showBrandForm && direction === 'left') {
           setDragX(-window.innerWidth);
           setModelImageLoaded(false);
-          setTimeout(() => {
+          const nextImg = modelsState[1]?.img;
+          if (nextImg) {
+            const img = new window.Image();
+            img.src = nextImg;
+            img.onload = () => {
+              setModelsState((prev) => prev.slice(1));
+              setDragX(0);
+            };
+          } else {
             setModelsState((prev) => prev.slice(1));
             setDragX(0);
-          }, 250);
+          }
         }
         if (user && !showBrandForm && direction !== 'left') {
           setModelImageLoaded(false);
