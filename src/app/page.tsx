@@ -1164,7 +1164,7 @@ export default function Home() {
             {modelsState.length > 0 && !showBecomeModelForm && (
               <div
                 ref={swipeRef}
-                className={`w-80 h-80 bg-white flex flex-col items-center justify-between rounded-xl shadow-xl border border-[#E5C76B] mb-4 select-none overflow-hidden`}
+                className={`w-80 h-80 flex flex-col items-center justify-between rounded-xl shadow-xl border border-[#E5C76B] mb-4 select-none overflow-hidden`}
                 style={{
                   transform: `translateX(${dragX}px)`,
                   transition: isDragging ? 'none' : 'transform 0.25s cubic-bezier(0.4,0,0.2,1)'
