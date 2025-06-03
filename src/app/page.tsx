@@ -1218,7 +1218,13 @@ export default function Home() {
                       }
                       await recordSwipe(modelsState[0]?.name, 'left', modelsState[0]?.img);
                       setModelImageLoaded(false);
-                      setPendingRemove({direction: 'left', index: 0});
+                      if (!user) {
+                        setTimeout(() => {
+                          setModelsState((prev) => prev.slice(1));
+                        }, 250);
+                      } else {
+                        setPendingRemove({direction: 'left', index: 0});
+                      }
                     }}
                     aria-label="Dislike"
                   >
@@ -1234,7 +1240,13 @@ export default function Home() {
                       }
                       await recordSwipe(modelsState[0]?.name, 'right', modelsState[0]?.img);
                       setModelImageLoaded(false);
-                      setPendingRemove({direction: 'right', index: 0});
+                      if (!user) {
+                        setTimeout(() => {
+                          setModelsState((prev) => prev.slice(1));
+                        }, 250);
+                      } else {
+                        setPendingRemove({direction: 'right', index: 0});
+                      }
                     }}
                     aria-label="Like"
                   >
