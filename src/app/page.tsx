@@ -1264,6 +1264,19 @@ export default function Home() {
                         return;
                       }
                       await recordSwipe(modelsState[0]?.name, 'right', modelsState[0]?.img);
+                      if (!user) {
+                        setModelImageLoaded(false);
+                        const nextImg = modelsState[1]?.img;
+                        if (nextImg) {
+                          const img = new window.Image();
+                          img.src = nextImg;
+                          img.onload = () => {
+                            setModelsState((prev) => prev.slice(1));
+                          };
+                        } else {
+                          setModelsState((prev) => prev.slice(1));
+                        }
+                      }
                       if (user && !showBrandForm) {
                         setModelImageLoaded(false);
                         const nextImg = modelsState[1]?.img;
