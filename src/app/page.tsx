@@ -1177,9 +1177,9 @@ export default function Home() {
                 onTouchEnd={handleTouchEnd}
               >
                 {/* Display the model image - now square and full width */}
-                <div className="w-full h-full relative">
+                <div className="w-full h-full relative" style={{background:'#F0C040'}}>
                   {!modelImageLoaded || !modelsState[0]?.img ? (
-                    <div style={{position:'absolute',inset:0,background:'#F0C040',zIndex:2,display:'flex',alignItems:'center',justifyContent:'center',transition:'opacity 0.2s',opacity:1}}>
+                    <div style={{position:'absolute',inset:0,background:'#F0C040',zIndex:2,display:'flex',alignItems:'center',justifyContent:'center',width:'100%',height:'100%'}}>
                       <svg width="64" height="64" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="30" fill="#F7E7B0" stroke="#F0C040" strokeWidth="4"/><text x="32" y="40" textAnchor="middle" fontSize="32" fill="#F0C040" fontWeight="bold">★</text></svg>
                     </div>
                   ) : (
