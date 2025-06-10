@@ -1,6 +1,7 @@
 "use client";
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 const sendEmail = async (to: string, subject: string, body: string) => {
   try {
@@ -44,6 +45,18 @@ export default function About() {
              )
            `
          }}>
+      <div className="w-full flex justify-center mb-8 mt-4" style={{ minHeight: 180 }}>
+        <Link href="/">
+          <Image
+            src="/Felix_Tell_logo.png"
+            alt="Felix Tell Artists' Bureau 1842"
+            width={320}
+            height={120}
+            style={{ maxWidth: '100%', height: 'auto', cursor: 'pointer' }}
+            priority
+          />
+        </Link>
+      </div>
       <div className="max-w-3xl w-full elegant-card mb-8">
         <h1 className="text-4xl elegant-heading text-black mb-8 text-center">About Felix Tell</h1>
         
