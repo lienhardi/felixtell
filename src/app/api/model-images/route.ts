@@ -10,10 +10,10 @@ export async function GET() {
     // Lese alle Dateien im Verzeichnis
     const files = fs.readdirSync(modelDir);
     
-    // Filtere nur Bilddateien (jpg, jpeg, png)
+    // Filtere nur Bilddateien (jpg, jpeg, png, webp)
     const imageFiles = files.filter(file => {
       const extension = path.extname(file).toLowerCase();
-      return ['.jpg', '.jpeg', '.png'].includes(extension);
+      return ['.jpg', '.jpeg', '.png', '.webp'].includes(extension);
     });
     
     // Erstelle die Bild-URLs für jedes Bild
